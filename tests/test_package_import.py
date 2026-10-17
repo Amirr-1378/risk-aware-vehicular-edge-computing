@@ -1,5 +1,8 @@
+import unittest
+
 import risk_aware_v2x
 
 
-def test_package_version() -> None:
-    assert risk_aware_v2x.__version__ == "0.1.0"
+class PackageImportTests(unittest.TestCase):
+    def test_package_version(self) -> None:
+        self.assertEqual(risk_aware_v2x.__version__, "0.1.0")

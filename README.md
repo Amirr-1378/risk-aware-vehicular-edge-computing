@@ -10,11 +10,11 @@ foundation of this repository.
 
 ## Current status
 
-The first implementation milestone now provides validated `Task`,
-`UserVehicle`, `ServerVehicle`, and `MECServer` entities, together with
-immutable MEC metadata snapshots and unit tests for their scientific
-invariants. The time-slotted environment, physical models, and learning
-agents have not been implemented yet.
+Validated `Task`, `UserVehicle`, `ServerVehicle`, and `MECServer` entities and
+immutable MEC snapshots are implemented. The physical-model layer now provides
+mobility, channels, latency, energy, EDF scheduling, explicit unit conversions,
+and independent seeded RNG streams with numeric and state-transition tests.
+The time-slotted environment and learning agents are subsequent milestones.
 
 The approved design baseline is documented in:
 
@@ -23,12 +23,14 @@ The approved design baseline is documented in:
 - [`docs/mdp_specification.md`](docs/mdp_specification.md): observations,
   actions, slot ordering, query lifecycle, CVaR control, fallback, and the
   transition-test matrix.
+- [`docs/physical_models.md`](docs/physical_models.md): implemented formulas,
+  allocation conventions, accounting boundaries, and modeling limitations.
 
 The implementation milestones are:
 
 1. **complete:** task, user-vehicle, server-vehicle, and MEC entities;
-2. **next:** latency, energy, queue, mobility, and channel models;
-3. the time-slotted dynamic environment;
+2. **complete:** latency, energy, queue, mobility, and channel primitives;
+3. **next:** the time-slotted dynamic environment;
 4. state, action, reward, and terminal conditions;
 5. reproducible baseline and learning experiments.
 
@@ -62,4 +64,11 @@ Install the package with development dependencies and run the tests with:
 ```text
 python -m pip install -e ".[dev]"
 python -m pytest
+```
+
+The current tests also run with the Python standard library (PowerShell):
+
+```powershell
+$env:PYTHONPATH = "src"
+python -m unittest discover -s tests -v
 ```

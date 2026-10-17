@@ -1,6 +1,8 @@
 # Scientific Model Specification
 
-Status: approved design baseline; implementation pending.
+Status: approved design baseline; entities and physical-model primitives
+implemented. Environment, objective integration, and learning remain pending.
+See [`physical_models.md`](physical_models.md) for implementation conventions.
 
 This document defines the scientific assumptions, units, entities, and physical
 models for the independent risk-aware vehicular edge-computing implementation.
@@ -452,9 +454,13 @@ T_i^{\mathrm{query}}
 +T_i^{\mathrm{fallback}}.
 \]
 
-The fallback term contains elapsed time from the discarded V2V attempt plus
-any subsequent MEC waiting and service. Latency is measured from task arrival,
-not from offloading admission.
+To avoid double counting, the queue/upload/compute/download terms refer to the
+final successful attempt. The fallback term contains only the discarded V2V
+attempt's elapsed time and any gap before MEC admission; subsequent MEC queue
+and service time already appear in the final-attempt terms. Any initial local
+admission wait must also be included once. Latency is measured from task
+arrival, not from offloading admission. The implementation uses disjoint
+`LatencyBreakdown` buckets detailed in `physical_models.md`.
 
 ## 10. Energy model
 
