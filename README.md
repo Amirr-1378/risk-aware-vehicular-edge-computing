@@ -14,7 +14,10 @@ Validated `Task`, `UserVehicle`, `ServerVehicle`, and `MECServer` entities and
 immutable MEC snapshots are implemented. The physical-model layer now provides
 mobility, channels, latency, energy, EDF scheduling, explicit unit conversions,
 and independent seeded RNG streams with numeric and state-transition tests.
-The time-slotted environment and learning agents are subsequent milestones.
+The time-slotted multi-user environment now joins those components, with
+cached observations, batched actions, queries, MEC recovery, slot costs, and
+drain-to-completion tests. Learning agents and paper-scale experiments remain
+subsequent milestones.
 
 The approved design baseline is documented in:
 
@@ -25,14 +28,17 @@ The approved design baseline is documented in:
   transition-test matrix.
 - [`docs/physical_models.md`](docs/physical_models.md): implemented formulas,
   allocation conventions, accounting boundaries, and modeling limitations.
+- [`docs/simulation_environment.md`](docs/simulation_environment.md): simulator
+  API, timing, resource sharing, causal energy escrow, and completion assumptions.
 
 The implementation milestones are:
 
 1. **complete:** task, user-vehicle, server-vehicle, and MEC entities;
 2. **complete:** latency, energy, queue, mobility, and channel primitives;
-3. **next:** the time-slotted dynamic environment;
-4. state, action, reward, and terminal conditions;
-5. reproducible baseline and learning experiments.
+3. **complete:** the time-slotted dynamic environment kernel;
+4. **complete:** raw observations, batched actions, slot costs/rewards, and drain;
+5. **next:** learning-facing vector/transition adapters, baselines, risk
+   utilities, and reproducible learning experiments.
 
 ## Repository layout
 
@@ -72,3 +78,16 @@ The current tests also run with the Python standard library (PowerShell):
 $env:PYTHONPATH = "src"
 python -m unittest discover -s tests -v
 ```
+
+Run a synthetic environment integration demonstration (not a paper benchmark):
+
+```powershell
+$env:PYTHONPATH = "src"
+python -m experiments.run_environment_smoke --seed 7 --policy first_cached_server
+python -m experiments.run_environment_smoke --seed 7 --policy mec
+```
+
+The JSON report includes configuration, seed, initial scenario, per-task
+accounting, and timestamped events. Read the environment contract before
+using this simulator for comparisons: completion depends on the explicit
+single-cell service and energy-envelope assumptions.

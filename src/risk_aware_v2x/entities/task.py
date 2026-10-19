@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from enum import Enum, IntEnum
+from decimal import Decimal
 from typing import ClassVar
 
 from ._validation import (
@@ -56,7 +57,8 @@ _ALLOWED_TRANSITIONS: dict[TaskStatus, frozenset[TaskStatus]] = {
     ),
     TaskStatus.WAITING_FOR_INFORMATION: frozenset({TaskStatus.READY_FOR_OFFLOADING}),
     TaskStatus.READY_FOR_OFFLOADING: frozenset(
-        {TaskStatus.UPLOADING_TO_MEC, TaskStatus.UPLOADING_TO_SERVER_VEHICLE}
+        {TaskStatus.UPLOADING_TO_MEC, TaskStatus.UPLOADING_TO_SERVER_VEHICLE,
+         TaskStatus.WAITING_FOR_INFORMATION}
     ),
     TaskStatus.UPLOADING_TO_MEC: frozenset({TaskStatus.MEC_QUEUED}),
     TaskStatus.UPLOADING_TO_SERVER_VEHICLE: frozenset(
@@ -193,7 +195,7 @@ class Task:
     def absolute_deadline_s(self, slot_duration_s: float) -> float:
         """Return the absolute deadline from slot zero, in seconds."""
         duration_s = require_positive_float("slot_duration_s", slot_duration_s)
-        return self.arrival_slot * duration_s + self.deadline_s
+        return float(Decimal(self.arrival_slot) * Decimal(str(duration_s)) + Decimal(str(self.deadline_s)))
 
     def scheduling_key(self, slot_duration_s: float) -> tuple[int, float, int, int]:
         """Return the deterministic criticality-aware EDF ordering key."""
@@ -304,9 +306,9 @@ class Task:
         else:
             raise ValueError("a task can only complete from a download phase")
         completed_s = require_finite_float("completion_time_s", completion_time_s)
-        if completed_s < self.arrival_slot * require_positive_float(
-            "slot_duration_s", slot_duration_s
-        ):
+        duration = require_positive_float("slot_duration_s", slot_duration_s)
+        arrival_s = float(Decimal(self.arrival_slot) * Decimal(str(duration)))
+        if completed_s < arrival_s:
             raise ValueError("completion_time_s cannot precede task arrival")
         self.final_executor_kind = kind
         self.final_executor_id = require_non_negative_int("executor_id", executor_id)

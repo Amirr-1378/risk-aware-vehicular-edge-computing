@@ -96,6 +96,7 @@ class LatencyBreakdown:
     compute_s: float = 0.0
     download_s: float = 0.0
     interrupted_attempt_s: float = 0.0
+    slot_boundary_wait_s: float = 0.0
 
     def __post_init__(self) -> None:
         for name in self.__dataclass_fields__:

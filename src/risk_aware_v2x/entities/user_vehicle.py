@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from enum import Enum
+from decimal import Decimal
 from typing import ClassVar
 
 from ._validation import (
@@ -173,7 +174,9 @@ class UserVehicle:
         now_s = require_non_negative_float("current_time_s", current_time_s)
         if now_s < self.snapshot_generated_time_s:
             raise ValueError("current_time_s cannot precede snapshot generation")
-        return now_s - self.snapshot_generated_time_s
+        # Decimal timestamp subtraction preserves slot-grid TTL boundaries
+        # without an epsilon that would accept a genuinely expired snapshot.
+        return float(Decimal(str(now_s)) - Decimal(str(self.snapshot_generated_time_s)))
 
     def is_cache_valid(self, current_time_s: float, lifetime_s: float) -> bool:
         """Return true through the exact lifetime boundary (age <= lifetime)."""

@@ -1,6 +1,9 @@
 # Time-Slotted Control and MDP Interface Specification
 
-Status: approved design baseline; implementation pending.
+Status: approved design baseline; raw environment interface and transition
+kernel implemented. Learning vector/transition adapters and QR-DQN remain
+pending. See [`simulation_environment.md`](simulation_environment.md) for the
+explicit first-kernel timing, radio-sharing, and guarantee assumptions.
 
 This document defines the learning-facing interface and the exact ordering of
 time-slotted state transitions. Scientific formulas and entity units are

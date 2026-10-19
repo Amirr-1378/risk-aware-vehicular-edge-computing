@@ -30,6 +30,12 @@ def make_task(**overrides: object) -> Task:
 
 
 class TaskEntityTests(unittest.TestCase):
+    def test_decimal_slot_deadline_does_not_accept_the_next_float_after_boundary(self) -> None:
+        task = make_task(arrival_slot=35, deadline_s=.01)
+        self.assertEqual(task.absolute_deadline_s(.01), .36)
+        self.assertFalse(task.mark_deadline_if_crossed(.36, .01))
+        self.assertTrue(task.mark_deadline_if_crossed(math.nextafter(.36, math.inf), .01))
+
     def test_workload_is_derived_and_progress_never_becomes_negative(self) -> None:
         task = make_task()
 

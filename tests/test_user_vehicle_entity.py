@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import unittest
+import math
 
 from risk_aware_v2x.entities import (
     MECMetadataRecord,
@@ -43,6 +44,15 @@ def make_snapshot(generated_time_s: float = 0.04) -> MECSnapshot:
 
 
 class UserVehicleEntityTests(unittest.TestCase):
+    def test_decimal_slot_grid_cache_boundary_has_no_epsilon_extension(self) -> None:
+        user = make_user(task_queue=[1])
+        user.begin_query(owner_task_id=1, request_time_s=0.0)
+        user.advance_query_phase(QueryStatus.QUERY_MEC_PROCESSING, 0.0)
+        user.advance_query_phase(QueryStatus.QUERY_RESPONSE_DOWNLINK, 0.0)
+        user.install_snapshot(make_snapshot(0.06), received_time_s=0.07)
+        self.assertTrue(user.is_cache_valid(0.07, 0.01))
+        self.assertFalse(user.is_cache_valid(math.nextafter(0.07, math.inf), 0.01))
+
     def test_queue_is_unique_and_bounded(self) -> None:
         user = make_user()
         user.enqueue_task(1)

@@ -1,7 +1,9 @@
 # Physical Models: Implementation Contracts
 
 This milestone implements the primitives in `src/risk_aware_v2x/models/`.
-The environment and learning agent are subsequent milestones. All quantities
+The first environment kernel now integrates these primitives; see
+[`simulation_environment.md`](simulation_environment.md). The learning agent
+is a subsequent milestone. All quantities
 use SI units, and these primitives introduce no calibrated traffic or radio
 scenario. Experiments must select those parameters explicitly.
 
@@ -103,6 +105,8 @@ final-attempt queue/upload/compute/download, and the entire discarded V2V
 attempt. MEC restart service belongs to the final-attempt buckets, never to
 the interrupted-attempt bucket. Any fallback admission gap belongs to
 `admission_wait_s`. Measured total latency must match completion minus arrival.
+The slotted kernel additionally records inter-phase gating time in
+`slot_boundary_wait_s` instead of silently hiding it in a service-time formula.
 The continuous-time service formulas are estimates, not a replacement for the
 eventual simulator's physical clock and actual allocations.
 

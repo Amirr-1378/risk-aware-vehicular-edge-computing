@@ -1,8 +1,11 @@
 # Scientific Model Specification
 
 Status: approved design baseline; entities and physical-model primitives
-implemented. Environment, objective integration, and learning remain pending.
+implemented. The environment kernel and incremental objective are also
+implemented; learning and paper-scale experiments remain pending.
 See [`physical_models.md`](physical_models.md) for implementation conventions.
+See [`simulation_environment.md`](simulation_environment.md) for the first
+kernel's explicit service assumptions and causal energy-envelope bounds.
 
 This document defines the scientific assumptions, units, entities, and physical
 models for the independent risk-aware vehicular edge-computing implementation.

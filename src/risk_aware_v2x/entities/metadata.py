@@ -27,6 +27,8 @@ class MECMetadataRecord:
     estimated_queue_delay_s: float
     available_uplink_bandwidth_hz: float
     available_downlink_bandwidth_hz: float
+    estimated_uplink_rate_bps: float = 0.0
+    estimated_downlink_rate_bps: float = 0.0
 
     def __post_init__(self) -> None:
         object.__setattr__(
@@ -49,6 +51,8 @@ class MECMetadataRecord:
             "estimated_queue_delay_s",
             "available_uplink_bandwidth_hz",
             "available_downlink_bandwidth_hz",
+            "estimated_uplink_rate_bps",
+            "estimated_downlink_rate_bps",
         ):
             object.__setattr__(
                 self,
@@ -76,6 +80,10 @@ class ServerVehicleMetadata:
     estimated_distance_m: float
     estimated_contact_time_s: float
     available: bool
+    reserve_energy_fraction: float = 0.0
+    relative_speed_mps: float = 0.0
+    same_mec_region: bool = True
+    estimated_downlink_rate_bps: float = 0.0
 
     def __post_init__(self) -> None:
         object.__setattr__(
@@ -95,6 +103,8 @@ class ServerVehicleMetadata:
             "estimated_rate_bps",
             "estimated_distance_m",
             "estimated_contact_time_s",
+            "relative_speed_mps",
+            "estimated_downlink_rate_bps",
         ):
             object.__setattr__(
                 self,
@@ -108,6 +118,11 @@ class ServerVehicleMetadata:
         )
         if not isinstance(self.available, bool):
             raise TypeError("available must be a boolean")
+        object.__setattr__(self, "reserve_energy_fraction", require_fraction(
+            "reserve_energy_fraction", self.reserve_energy_fraction
+        ))
+        if not isinstance(self.same_mec_region, bool):
+            raise TypeError("same_mec_region must be a boolean")
 
 
 @dataclass(frozen=True, slots=True)
@@ -136,6 +151,8 @@ class MECSnapshot:
         ids = [record.server_vehicle_id for record in records]
         if len(ids) != len(set(ids)):
             raise ValueError("server_vehicles must not contain duplicate identifiers")
+        if any(record.record_time_s > self.generated_time_s for record in records):
+            raise ValueError("snapshot cannot contain future server records")
         object.__setattr__(self, "server_vehicles", records)
 
     def server_record(self, server_vehicle_id: int) -> ServerVehicleMetadata | None:
