@@ -38,7 +38,8 @@ a deployed policy. The first observation schema is **raw version 1**; absent
 server records use `None`. The implemented `ObservationEncoder` normalizes
 features and zero-pads slots without reading diagnostic truth. `DecisionAdapter`
 retains costs between irregular decision times and separately records costs
-before the first action; neural training itself is not yet implemented.
+before the first action. Optional neural training is implemented separately;
+see [`neural_agents.md`](neural_agents.md).
 
 ## Slot ordering and discretization
 

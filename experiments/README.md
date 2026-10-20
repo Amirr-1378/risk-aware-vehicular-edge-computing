@@ -25,3 +25,19 @@ python -m experiments.run_baseline_smoke --seed 7 --policy-seed 17 --gamma-per-s
 No learned policy or statistical performance claim is included. See
 [`../docs/learning_interface.md`](../docs/learning_interface.md) for limitations
 and the distinction between minimum latency and combined-cost control.
+
+`run_learning_smoke.py` trains/evaluates an optional CPU neural agent and can
+save/resume complete episode boundaries. It is also an integration audit, not
+a calibrated benchmark. Install the `learning` dependencies first:
+
+```text
+python -m experiments.run_learning_smoke --algorithm qr_dqn_cvar --episodes 4
+python -m experiments.run_learning_smoke --episodes 2 --checkpoint artifacts/learning/first.pt
+python -m experiments.run_learning_smoke --episodes 2 --resume artifacts/learning/first.pt --checkpoint artifacts/learning/continued.pt
+```
+
+Choose `dqn`, `double_dqn`, `qr_dqn`, or `qr_dqn_cvar`. Reports distinguish
+training updates from frozen greedy evaluation and preserve complete costs,
+including pre-decision prefixes and variable drain. Separate seed labels in
+this deterministic smoke scene are not independent stochastic evaluation
+trials. See [`../docs/neural_agents.md`](../docs/neural_agents.md).

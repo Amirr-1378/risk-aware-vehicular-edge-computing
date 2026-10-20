@@ -1,8 +1,10 @@
 # Learning Interface, Simple Baselines, and Risk Utilities
 
-Status: implemented and tested without third-party runtime dependencies. This
-milestone does **not** train DQN/QR-DQN or establish an algorithmic improvement.
-It supplies an auditable interface to the simulator described in
+Status: these interface/baseline/risk components are implemented and tested
+without third-party runtime dependencies. Optional neural training is now
+documented in [`neural_agents.md`](neural_agents.md); neither milestone
+establishes an algorithmic improvement. This supplies an auditable interface to
+the simulator described in
 [`simulation_environment.md`](simulation_environment.md).
 
 ## Received information and vector schema v1
@@ -141,10 +143,10 @@ finite values. Ties resolve by the smallest valid index. Scoring sorts a copy
 even if predicted quantiles cross; it does not reorder training fractions.
 
 These routines score supplied finite distributions. They do not implement a
-QR-DQN update or prove that greedy CVaR distortion globally optimizes a
+QR-DQN update themselves or prove that greedy CVaR distortion globally optimizes a
 static episode-level CVaR objective. Static CVaR, conditional per-decision
 risk distortion, and time-consistent nested risk are different formulations.
-The next agent milestone must state its update/policy interpretation explicitly;
+The implemented neural agent states its update/policy interpretation explicitly;
 empirical tail improvement alone is not such a theorem. Likewise, few seeds
 or few atoms cannot establish reliable tail estimates.
 The failure of standard CVaR-greedy distributional control to guarantee either
@@ -186,9 +188,10 @@ Construct it anew with the same seed for a reproducible new evaluation run.
 
 MinimumEstimatedLatency is supplementary, **not** the approved greedy
 one-step combined-cost baseline: the cached schema alone does not expose all
-power/CPU-energy calibration needed to estimate that objective. That baseline,
-the adapted paper best-response baseline, DQN, Double DQN, and learned
-risk-neutral/risk-aware QR-DQN remain unimplemented. No policy here is named
+power/CPU-energy calibration needed to estimate that objective. That baseline
+and the adapted paper best-response baseline remain unimplemented. DQN,
+Double DQN, and learned risk-neutral/risk-distorted QR-DQN are implemented
+separately in the optional neural layer. No simple policy here is named
 after the paper's method or claimed to reproduce it.
 
 ## Reproducible integration run and next milestone
@@ -206,7 +209,8 @@ discounted cost decompositions. It checks prefix/transition conservation after
 drain. The scenario is deliberately small and synthetic; its results must not
 be used as a paper benchmark or evidence of statistical superiority.
 
-Next: implement and numerically test learning updates/replay/checkpoints for
-DQN, Double DQN, risk-neutral QR-DQN, and the stated risk-distorted controller.
-Then freeze training/evaluation protocols, independent seeds, calibrated
+Learning updates/replay/checkpoints for DQN, Double DQN, risk-neutral QR-DQN,
+and the stated risk-distorted controller are now implemented and numerically
+tested; see [`neural_agents.md`](neural_agents.md). Next freeze training/
+evaluation protocols, independent seeds, calibrated
 scenario ranges, confidence intervals, and ablations before performance claims.

@@ -18,8 +18,10 @@ The time-slotted multi-user environment now joins those components, with
 cached observations, batched actions, queries, MEC recovery, slot costs, and
 drain-to-completion tests. Fixed-size observation encoding, complete
 decision-epoch transitions, four simple comparison policies, and exact
-finite-distribution CVaR scoring are now implemented and tested. Neural-agent
-training and paper-scale experiments remain subsequent milestones.
+finite-distribution CVaR scoring are implemented and tested. CPU DQN,
+Double DQN, QR-DQN, and mean-CVaR-distorted QR agents now include replay,
+training updates, greedy evaluation, and resumable episode-boundary checkpoints.
+Calibrated paper-scale experiments remain a subsequent milestone.
 
 The approved design baseline is documented in:
 
@@ -34,6 +36,8 @@ The approved design baseline is documented in:
   API, timing, resource sharing, causal energy escrow, and completion assumptions.
 - [`docs/learning_interface.md`](docs/learning_interface.md): vector schema,
   decision-gap/prefix accounting, simple baselines, and cost/reward CVaR conventions.
+- [`docs/neural_agents.md`](docs/neural_agents.md): exact learning updates,
+  optional CPU dependencies, exploration, checkpoint/resume, and scientific limits.
 
 The implementation milestones are:
 
@@ -42,8 +46,10 @@ The implementation milestones are:
 3. **complete:** the time-slotted dynamic environment kernel;
 4. **complete:** raw observations, batched actions, slot costs/rewards, and drain;
 5. **complete:** learning vector/transition adapters, simple baselines, and risk utilities;
-6. **next:** DQN/Double DQN/QR-DQN updates, replay, checkpoints, and reproducible
-   learning/evaluation experiments; adapted paper and combined-cost baselines follow.
+6. **complete:** DQN/Double DQN/QR-DQN updates, replay, checkpoints, and a
+   reproducible CPU training/evaluation audit;
+7. **next:** calibrated stochastic scenarios, frozen experimental protocols,
+   adapted paper/combined-cost baselines, and statistically defensible evaluation.
 
 ## Repository layout
 
@@ -84,6 +90,17 @@ $env:PYTHONPATH = "src"
 python -m unittest discover -s tests -v
 ```
 
+Neural training requires the optional `learning` dependencies; without them,
+the core tests run and the neural tests explicitly skip. For a full CPU setup,
+see [`docs/neural_agents.md`](docs/neural_agents.md). In the configured local
+virtual environment, run:
+
+```powershell
+$env:PYTHONPATH = "src"
+.\.venv\Scripts\python.exe -m unittest discover -s tests -v
+.\.venv\Scripts\python.exe -m experiments.run_learning_smoke --algorithm qr_dqn_cvar --episodes 4
+```
+
 Run a synthetic environment integration demonstration (not a paper benchmark):
 
 ```powershell
@@ -99,3 +116,5 @@ using this simulator for comparisons: completion depends on the explicit
 single-cell service and energy-envelope assumptions.
 The baseline smoke report also checks raw/discounted prefix and transition
 accounting. Neither smoke entry point is a scientific performance benchmark.
+The neural smoke runner likewise checks training/evaluation mechanics rather
+than providing learning-performance or static-CVaR-optimality evidence.

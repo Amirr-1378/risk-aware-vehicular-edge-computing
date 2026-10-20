@@ -3,7 +3,9 @@
 Status: approved design baseline; entities and physical-model primitives
 implemented. The environment kernel and incremental objective are also
 implemented, as are learning-interface adapters, simple baselines, and exact
-finite-distribution risk scoring; neural training and paper-scale experiments
+finite-distribution risk scoring. Optional CPU neural agents, updates, replay,
+and resumable training audits are implemented in
+[`neural_agents.md`](neural_agents.md); calibrated paper-scale experiments
 remain pending. See [`learning_interface.md`](learning_interface.md) for the
 implemented risk convention and the distinction from global CVaR optimality.
 See [`physical_models.md`](physical_models.md) for implementation conventions.
@@ -599,7 +601,9 @@ for a static episode-level CVaR objective. An ordinary distributional Bellman
 backup with a risk-distorted greedy policy must not be claimed to solve static
 CVaR control exactly. Static, nested, and per-decision risk formulations must
 be distinguished in the learning implementation and paper. The implemented
-utilities presently score supplied equal-mass atoms only.
+utilities score supplied equal-mass atoms; the optional neural controller
+implements the documented risk-distorted greedy approximation, not exact
+static or nested CVaR control.
 
 ## 13. Evaluation metrics
 
