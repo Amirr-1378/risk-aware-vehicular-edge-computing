@@ -16,8 +16,10 @@ mobility, channels, latency, energy, EDF scheduling, explicit unit conversions,
 and independent seeded RNG streams with numeric and state-transition tests.
 The time-slotted multi-user environment now joins those components, with
 cached observations, batched actions, queries, MEC recovery, slot costs, and
-drain-to-completion tests. Learning agents and paper-scale experiments remain
-subsequent milestones.
+drain-to-completion tests. Fixed-size observation encoding, complete
+decision-epoch transitions, four simple comparison policies, and exact
+finite-distribution CVaR scoring are now implemented and tested. Neural-agent
+training and paper-scale experiments remain subsequent milestones.
 
 The approved design baseline is documented in:
 
@@ -30,6 +32,8 @@ The approved design baseline is documented in:
   allocation conventions, accounting boundaries, and modeling limitations.
 - [`docs/simulation_environment.md`](docs/simulation_environment.md): simulator
   API, timing, resource sharing, causal energy escrow, and completion assumptions.
+- [`docs/learning_interface.md`](docs/learning_interface.md): vector schema,
+  decision-gap/prefix accounting, simple baselines, and cost/reward CVaR conventions.
 
 The implementation milestones are:
 
@@ -37,8 +41,9 @@ The implementation milestones are:
 2. **complete:** latency, energy, queue, mobility, and channel primitives;
 3. **complete:** the time-slotted dynamic environment kernel;
 4. **complete:** raw observations, batched actions, slot costs/rewards, and drain;
-5. **next:** learning-facing vector/transition adapters, baselines, risk
-   utilities, and reproducible learning experiments.
+5. **complete:** learning vector/transition adapters, simple baselines, and risk utilities;
+6. **next:** DQN/Double DQN/QR-DQN updates, replay, checkpoints, and reproducible
+   learning/evaluation experiments; adapted paper and combined-cost baselines follow.
 
 ## Repository layout
 
@@ -85,9 +90,12 @@ Run a synthetic environment integration demonstration (not a paper benchmark):
 $env:PYTHONPATH = "src"
 python -m experiments.run_environment_smoke --seed 7 --policy first_cached_server
 python -m experiments.run_environment_smoke --seed 7 --policy mec
+python -m experiments.run_baseline_smoke --seed 7 --policy-seed 17
 ```
 
 The JSON report includes configuration, seed, initial scenario, per-task
 accounting, and timestamped events. Read the environment contract before
 using this simulator for comparisons: completion depends on the explicit
 single-cell service and energy-envelope assumptions.
+The baseline smoke report also checks raw/discounted prefix and transition
+accounting. Neither smoke entry point is a scientific performance benchmark.

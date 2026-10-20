@@ -2,8 +2,10 @@
 
 The first environment implementation joins the approved entities and physical
 primitives. It is a simulator kernel with raw observations and slot costs;
-it does not yet include QR-DQN, CVaR selection, a Gymnasium wrapper, or a
-calibrated paper benchmark. The scientific design remains in
+it does not itself implement QR-DQN, a Gymnasium wrapper, or a calibrated
+paper benchmark. Learning adapters, simple policies, and standalone risk
+scoring are described in [`learning_interface.md`](learning_interface.md).
+The scientific design remains in
 [`scientific_model.md`](scientific_model.md) and
 [`mdp_specification.md`](mdp_specification.md).
 
@@ -33,9 +35,10 @@ observation records and nested snapshots are frozen.
 `env.tasks`, `users`, `server_vehicles`, `mec`, `ledgers`, `wireless`, `events`,
 and `metrics()` are diagnostic simulator state. They must never be passed to
 a deployed policy. The first observation schema is **raw version 1**; absent
-server records use `None`. A future vector adapter must normalize features and
-zero-pad slots without reading diagnostic truth. Cost accumulation between
-irregular decision times also needs a learning adapter before training.
+server records use `None`. The implemented `ObservationEncoder` normalizes
+features and zero-pads slots without reading diagnostic truth. `DecisionAdapter`
+retains costs between irregular decision times and separately records costs
+before the first action; neural training itself is not yet implemented.
 
 ## Slot ordering and discretization
 

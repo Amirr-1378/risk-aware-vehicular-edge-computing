@@ -2,7 +2,10 @@
 
 Status: approved design baseline; entities and physical-model primitives
 implemented. The environment kernel and incremental objective are also
-implemented; learning and paper-scale experiments remain pending.
+implemented, as are learning-interface adapters, simple baselines, and exact
+finite-distribution risk scoring; neural training and paper-scale experiments
+remain pending. See [`learning_interface.md`](learning_interface.md) for the
+implemented risk convention and the distinction from global CVaR optimality.
 See [`physical_models.md`](physical_models.md) for implementation conventions.
 See [`simulation_environment.md`](simulation_environment.md) for the first
 kernel's explicit service assumptions and causal energy-envelope bounds.
@@ -591,6 +594,13 @@ with nominal \(\lambda_r=0.5\). The controller minimizes \(J\). The risk
 sensitivity grid is 0, 0.25, 0.5, 0.75, and 1. A value of zero is the
 risk-neutral QR-DQN ablation.
 
+This specifies a conditional action score, not a proof of global optimality
+for a static episode-level CVaR objective. An ordinary distributional Bellman
+backup with a risk-distorted greedy policy must not be claimed to solve static
+CVaR control exactly. Static, nested, and per-decision risk formulations must
+be distinguished in the learning implementation and paper. The implemented
+utilities presently score supplied equal-mass atoms only.
+
 ## 13. Evaluation metrics
 
 Primary metrics are
@@ -669,8 +679,14 @@ Every formula and state-changing rule above requires a deterministic test.
 
 ## 17. References used to define the model
 
+- R. T. Rockafellar and S. Uryasev, "Conditional value-at-risk for general
+  loss distributions," Journal of Banking & Finance 2002,
+  <https://doi.org/10.1016/S0378-4266(02)00271-6>.
 - W. Dabney et al., "Distributional Reinforcement Learning with Quantile
   Regression," AAAI 2018, <https://arxiv.org/abs/1710.10044>.
+- S. H. Lim and I. Malik, "Distributional Reinforcement Learning for
+  Risk-Sensitive Policies," NeurIPS 2022,
+  <https://papers.neurips.cc/paper_files/paper/2022/hash/c88a2bd0e793550d0e885aa6e31ca277-Abstract-Conference.html>.
 - K. Wang, N. Kallus, and W. Sun, "Near-Minimax-Optimal Risk-Sensitive
   Reinforcement Learning with CVaR," ICML 2023,
   <https://proceedings.mlr.press/v202/wang23m.html>.

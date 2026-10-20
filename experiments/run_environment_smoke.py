@@ -16,10 +16,8 @@ from risk_aware_v2x.environment import EnvironmentConfig, SlottedEnvironment
 from risk_aware_v2x.models.channel import LogDistanceChannel
 
 
-def run_smoke(*, seed: int = 7, policy: str = "first_cached_server") -> dict:
-    """Return a complete reproducibility manifest and auditable terminal ledgers."""
-    if policy not in {"mec", "first_cached_server"}:
-        raise ValueError("unknown smoke policy")
+def build_smoke_scenario() -> tuple[SlottedEnvironment, dict]:
+    """Build shared scenario prototypes and a pre-reset reproducibility manifest."""
     channel = LogDistanceChannel(5.9e9, 2.0)
     config = EnvironmentConfig(
         arrival_horizon_slots=25, max_server_vehicles=2,
@@ -61,6 +59,19 @@ def run_smoke(*, seed: int = 7, policy: str = "first_cached_server") -> dict:
     ) for index in range(3) for user_id in (1, 2)]
     env = SlottedEnvironment(config=config, users=users, server_vehicles=servers,
                              mec=mec, task_trace=trace)
+    scenario = {
+        "users": [_initial_record(user) for user in users],
+        "servers": [_initial_record(server) for server in servers],
+        "mec": _initial_record(mec), "tasks": [_initial_record(task) for task in trace],
+    }
+    return env, scenario
+
+
+def run_smoke(*, seed: int = 7, policy: str = "first_cached_server") -> dict:
+    """Return a complete reproducibility manifest and auditable terminal ledgers."""
+    if policy not in {"mec", "first_cached_server"}:
+        raise ValueError("unknown smoke policy")
+    env, scenario = build_smoke_scenario()
     env.reset(seed=seed)
     total_returned_cost = 0.0
     while not env.terminated:
@@ -72,12 +83,7 @@ def run_smoke(*, seed: int = 7, policy: str = "first_cached_server") -> dict:
     return {
         "report_schema_version": 1, "purpose": "synthetic integration smoke test",
         "seed": seed, "python_version": platform.python_version(), "policy": policy,
-        "configuration": asdict(config),
-        "scenario": {
-            "users": [_initial_record(user) for user in users],
-            "servers": [_initial_record(server) for server in servers],
-            "mec": _initial_record(mec), "tasks": [_initial_record(task) for task in trace],
-        },
+        "configuration": asdict(env.config), "scenario": scenario,
         "elapsed_slots": env.slot, "metrics": env.metrics(),
         "sum_returned_cost": total_returned_cost,
         "tasks": [{

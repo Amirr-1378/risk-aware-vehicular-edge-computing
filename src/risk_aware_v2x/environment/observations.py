@@ -25,7 +25,7 @@ class OffloadingObservation:
     """Raw schema v1; None server slots are padding, MEC is always action zero.
 
     Physical suffixes specify SI units. No live server object or future trace
-    is referenced. A normalized neural-network vector is a later adapter.
+    is referenced. The learning adapter encodes this received information only.
     """
 
     schema_version: int
@@ -64,6 +64,19 @@ class OffloadingObservation:
         if action >= len(self.action_mask) or self.servers[action - 1] is None:
             raise ValueError("action addresses an absent server slot")
         return self.servers[action - 1].record.server_vehicle_id
+
+
+def observed_valid_actions(observation: OffloadingObservation) -> tuple[int, ...]:
+    """Validate the received mask without consulting any live resource state."""
+    mask = observation.action_mask
+    if len(mask) != len(observation.servers) + 1 or not mask or mask[0] is not True:
+        raise ValueError("observation must have a valid MEC action and fixed server slots")
+    if not all(isinstance(flag, bool) for flag in mask):
+        raise ValueError("action mask must be boolean")
+    if any(mask[index + 1] and server is None
+           for index, server in enumerate(observation.servers)):
+        raise ValueError("padding cannot be an available action")
+    return tuple(index for index, flag in enumerate(mask) if flag)
 
 
 def build_observation(

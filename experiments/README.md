@@ -12,3 +12,16 @@ package installed, or set PowerShell's `$env:PYTHONPATH = "src"` first:
 ```text
 python -m experiments.run_environment_smoke --seed 7 --policy first_cached_server
 ```
+
+`run_baseline_smoke.py` runs AlwaysMEC, AlwaysV2V, UniformRandom, and the
+supplementary MinimumEstimatedLatency rule on the same synthetic scenario.
+It audits the learning adapter's raw and slot-discounted prefix/transition
+decomposition and records explicit encoder configuration and independent seeds:
+
+```text
+python -m experiments.run_baseline_smoke --seed 7 --policy-seed 17 --gamma-per-slot 1
+```
+
+No learned policy or statistical performance claim is included. See
+[`../docs/learning_interface.md`](../docs/learning_interface.md) for limitations
+and the distinction between minimum latency and combined-cost control.
