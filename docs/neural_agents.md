@@ -206,3 +206,11 @@ test partitions, a frozen comparison protocol with independent scenario and
 agent seeds, adapted paper and combined-cost baselines, query-free MEC protocol
 comparison, uncertainty intervals, tail calibration, and predeclared ablations.
 Do not report the short audit as convergence, superiority, or a safety result.
+
+The next infrastructure milestone is now available in
+[`development_protocol.md`](development_protocol.md): independent stochastic
+scenes, split/seed planning, terminal diagnostics, and paired analytical-policy
+audits. Learned multi-seed training on that plan and empirical calibration
+remain pending. Code changes alter source fingerprints; an old development
+checkpoint is not automatically a reproducible training-resume point for a new
+source/configuration/encoder contract. Existing files are preserved.

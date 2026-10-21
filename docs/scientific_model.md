@@ -8,6 +8,9 @@ and resumable training audits are implemented in
 [`neural_agents.md`](neural_agents.md); calibrated paper-scale experiments
 remain pending. See [`learning_interface.md`](learning_interface.md) for the
 implemented risk convention and the distinction from global CVaR optimality.
+Seeded synthetic development workloads and a provisional split/seed protocol
+are implemented in [`development_protocol.md`](development_protocol.md).
+Their numerical ranges are not yet empirical calibration or final paper settings.
 See [`physical_models.md`](physical_models.md) for implementation conventions.
 See [`simulation_environment.md`](simulation_environment.md) for the first
 kernel's explicit service assumptions and causal energy-envelope bounds.

@@ -41,3 +41,19 @@ training updates from frozen greedy evaluation and preserve complete costs,
 including pre-decision prefixes and variable drain. Separate seed labels in
 this deterministic smoke scene are not independent stochastic evaluation
 trials. See [`../docs/neural_agents.md`](../docs/neural_agents.md).
+
+`run_scenario_audit.py` evaluates four analytical policies on shared stochastic
+development scenarios from `configs/development_v1.json`. It has no neural
+dependency. The default split is validation; test access is closed unless
+explicitly enabled. No offered task or difficult episode is silently removed.
+
+```text
+python -m experiments.run_scenario_audit --profile nominal --cases 2
+python -m experiments.run_scenario_audit --profile high_load --cases 2 --output reports/development-high-load-v1.json
+```
+
+Other profiles are `fast_servers` and `harsh_channel`. Outputs include scenario
+manifests, paired seeds, full-drain metrics, episode-level cost risk, and paired
+mean-cost bootstrap intervals. These uncalibrated small development samples
+are not learned-policy, standards-compliance, or final paper evidence. See
+[`../docs/development_protocol.md`](../docs/development_protocol.md).

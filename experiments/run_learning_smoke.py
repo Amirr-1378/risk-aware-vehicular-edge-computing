@@ -5,7 +5,6 @@ import hashlib
 import json
 import math
 import platform
-import subprocess
 from importlib.metadata import distributions
 from contextlib import contextmanager
 from dataclasses import asdict
@@ -19,29 +18,7 @@ from risk_aware_v2x.agents.neural import ALGORITHMS, AgentConfig, NeuralCostAgen
 from risk_aware_v2x.agents.schedules import EpsilonSchedule
 from risk_aware_v2x.entities._validation import require_non_negative_int
 from .run_environment_smoke import _json_value, build_smoke_scenario
-
-
-def source_provenance() -> dict:
-    """Fingerprint actual Python sources, including uncommitted implementation."""
-    root = Path(__file__).resolve().parents[1]
-    digest = hashlib.sha256()
-    paths = sorted([*(root / "src").rglob("*.py"), *(root / "experiments").glob("*.py")])
-    for path in paths:
-        digest.update(path.relative_to(root).as_posix().encode("utf-8") + b"\0")
-        digest.update(path.read_text(encoding="utf-8").encode("utf-8") + b"\0")
-    commit, dirty = None, None
-    try:
-        revision = subprocess.run(["git", "-C", str(root), "rev-parse", "HEAD"],
-                                  capture_output=True, text=True, timeout=5, check=False)
-        status = subprocess.run(["git", "-C", str(root), "status", "--porcelain"],
-                                capture_output=True, text=True, timeout=5, check=False)
-        if revision.returncode == 0:
-            commit = revision.stdout.strip()
-        if status.returncode == 0:
-            dirty = bool(status.stdout.strip())
-    except (OSError, subprocess.TimeoutExpired):
-        pass  # Source hash still works when Git is unavailable in an export.
-    return {"source_sha256": digest.hexdigest(), "git_commit": commit, "git_dirty": dirty}
+from .provenance import source_provenance
 
 
 @contextmanager

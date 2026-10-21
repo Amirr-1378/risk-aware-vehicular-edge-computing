@@ -21,7 +21,10 @@ decision-epoch transitions, four simple comparison policies, and exact
 finite-distribution CVaR scoring are implemented and tested. CPU DQN,
 Double DQN, QR-DQN, and mean-CVaR-distorted QR agents now include replay,
 training updates, greedy evaluation, and resumable episode-boundary checkpoints.
-Calibrated paper-scale experiments remain a subsequent milestone.
+Seeded stochastic development scenarios, disjoint split/seed plans, terminal
+metrics, and paired analytical-policy audits are also implemented. Their
+parameters are explicitly synthetic; calibrated paper-scale experiments
+remain a subsequent milestone.
 
 The approved design baseline is documented in:
 
@@ -38,6 +41,8 @@ The approved design baseline is documented in:
   decision-gap/prefix accounting, simple baselines, and cost/reward CVaR conventions.
 - [`docs/neural_agents.md`](docs/neural_agents.md): exact learning updates,
   optional CPU dependencies, exploration, checkpoint/resume, and scientific limits.
+- [`docs/development_protocol.md`](docs/development_protocol.md): stochastic
+  scenarios, parameter provenance/gaps, split/seed plan, metrics, and paired audits.
 
 The implementation milestones are:
 
@@ -48,8 +53,10 @@ The implementation milestones are:
 5. **complete:** learning vector/transition adapters, simple baselines, and risk utilities;
 6. **complete:** DQN/Double DQN/QR-DQN updates, replay, checkpoints, and a
    reproducible CPU training/evaluation audit;
-7. **next:** calibrated stochastic scenarios, frozen experimental protocols,
-   adapted paper/combined-cost baselines, and statistically defensible evaluation.
+7. **complete:** synthetic stochastic development scenarios, versioned split/seed
+   plans, terminal metrics, and paired fixed-policy evaluation infrastructure;
+8. **next:** empirical calibration, multi-seed learned training, frozen paper
+   protocols, adapted paper/combined-cost baselines, and final evaluation.
 
 ## Repository layout
 
@@ -62,6 +69,7 @@ src/risk_aware_v2x/
   environment/   Time-slotted simulation environment
   models/        Channel, latency, energy, mobility, and queue models
   risk/          CVaR and distributional-risk utilities
+  scenarios/     Seeded synthetic workloads and versioned development plans
 experiments/     Reproducible experiment entry points and configurations
 tests/           Unit and integration tests
 ```
@@ -108,6 +116,7 @@ $env:PYTHONPATH = "src"
 python -m experiments.run_environment_smoke --seed 7 --policy first_cached_server
 python -m experiments.run_environment_smoke --seed 7 --policy mec
 python -m experiments.run_baseline_smoke --seed 7 --policy-seed 17
+python -m experiments.run_scenario_audit --profile nominal --cases 2
 ```
 
 The JSON report includes configuration, seed, initial scenario, per-task
@@ -118,3 +127,6 @@ The baseline smoke report also checks raw/discounted prefix and transition
 accounting. Neither smoke entry point is a scientific performance benchmark.
 The neural smoke runner likewise checks training/evaluation mechanics rather
 than providing learning-performance or static-CVaR-optimality evidence.
+The stochastic audit uses validation scenarios by default and keeps the test
+split closed. Its small-sample risk/interval summaries are development
+diagnostics, not paper-level evidence of improvement.
