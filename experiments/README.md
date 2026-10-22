@@ -57,3 +57,20 @@ manifests, paired seeds, full-drain metrics, episode-level cost risk, and paired
 mean-cost bootstrap intervals. These uncalibrated small development samples
 are not learned-policy, standards-compliance, or final paper evidence. See
 [`../docs/development_protocol.md`](../docs/development_protocol.md).
+
+`run_learning_audit.py` connects the stochastic plan to 4 neural algorithms x
+2 agent seeds. The explicit `configs/learning_pilot_v1.json` fixes 4 nominal
+training episodes, final-model-only selection, and 2 validation cases in each
+profile. It never constructs/evaluates the test split. Install `learning` first:
+
+```text
+python -m experiments.run_learning_audit --output-dir reports/learning-pilot-v1
+```
+
+Choose an unused output directory; reports/checkpoints are never overwritten.
+The report preserves per-model episode risk and separates conditional training
+seed variation from scenario uncertainty. There is no pooled-policy CVaR,
+best-seed selection, convergence claim, or sweep-resume driver. The core CPU
+loop is shared with the old smoke runner in `learning_runtime.py`. See
+[`../docs/learning_development_protocol.md`](../docs/learning_development_protocol.md)
+for exact budgets, pairing, artifacts, and methodological limitations.

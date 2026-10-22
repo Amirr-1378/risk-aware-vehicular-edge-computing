@@ -210,7 +210,10 @@ Do not report the short audit as convergence, superiority, or a safety result.
 The next infrastructure milestone is now available in
 [`development_protocol.md`](development_protocol.md): independent stochastic
 scenes, split/seed planning, terminal diagnostics, and paired analytical-policy
-audits. Learned multi-seed training on that plan and empirical calibration
+audits. A bounded learned multi-seed training/validation pilot on that plan is
+now available in [learning_development_protocol.md](learning_development_protocol.md).
+Both neural entry points share `experiments/learning_runtime.py`; the neural
+updates are unchanged. Empirical calibration and larger final experiments
 remain pending. Code changes alter source fingerprints; an old development
 checkpoint is not automatically a reproducible training-resume point for a new
 source/configuration/encoder contract. Existing files are preserved.

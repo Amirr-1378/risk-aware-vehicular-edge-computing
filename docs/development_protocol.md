@@ -206,6 +206,12 @@ manifests, per-policy terminal metrics, prefix/transition accounting, descriptiv
 risk, and paired intervals. Both reports/ and runtime artifacts remain ignored
 by Git; only versioned code/configuration/tests/documentation enter the repo.
 
-Next: validate/calibrate these assumptions, connect learned multi-seed training
-to the declared scenario plan, freeze validation/model-selection rules, and
-implement the remaining scientific baselines before long training or test use.
+The bounded neural connection is now implemented in
+[learning_development_protocol.md](learning_development_protocol.md): an explicit
+two-seed pilot, fixed-final-model validation, no test execution, matched fixed
+baselines, per-model episode risk, and conditional training-seed variation.
+The analytical audit above itself still trains no neural policy.
+
+Next: validate/calibrate these assumptions, expand independent budgets, freeze
+the final validation/model-selection and uncertainty rules, and implement the
+remaining scientific baselines before long training or test use.

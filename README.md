@@ -23,8 +23,10 @@ Double DQN, QR-DQN, and mean-CVaR-distorted QR agents now include replay,
 training updates, greedy evaluation, and resumable episode-boundary checkpoints.
 Seeded stochastic development scenarios, disjoint split/seed plans, terminal
 metrics, and paired analytical-policy audits are also implemented. Their
-parameters are explicitly synthetic; calibrated paper-scale experiments
-remain a subsequent milestone.
+parameters are explicitly synthetic. A bounded multi-seed neural audit now
+connects those scenarios to fixed-final-model training/validation and matched
+analytical baselines, with separate per-model risk and conditional seed
+variation. Calibrated paper-scale experiments remain a subsequent milestone.
 
 The approved design baseline is documented in:
 
@@ -43,6 +45,8 @@ The approved design baseline is documented in:
   optional CPU dependencies, exploration, checkpoint/resume, and scientific limits.
 - [`docs/development_protocol.md`](docs/development_protocol.md): stochastic
   scenarios, parameter provenance/gaps, split/seed plan, metrics, and paired audits.
+- [`docs/learning_development_protocol.md`](docs/learning_development_protocol.md):
+  bounded multi-seed training, final-model validation, pairing, and statistical units.
 
 The implementation milestones are:
 
@@ -55,7 +59,9 @@ The implementation milestones are:
    reproducible CPU training/evaluation audit;
 7. **complete:** synthetic stochastic development scenarios, versioned split/seed
    plans, terminal metrics, and paired fixed-policy evaluation infrastructure;
-8. **next:** empirical calibration, multi-seed learned training, frozen paper
+8. **complete:** bounded multi-seed stochastic neural training/validation pilot
+   infrastructure, final-model artifacts, and conditional training-seed diagnostics;
+9. **next:** empirical calibration, larger learned training, frozen paper
    protocols, adapted paper/combined-cost baselines, and final evaluation.
 
 ## Repository layout
@@ -107,6 +113,7 @@ virtual environment, run:
 $env:PYTHONPATH = "src"
 .\.venv\Scripts\python.exe -m unittest discover -s tests -v
 .\.venv\Scripts\python.exe -m experiments.run_learning_smoke --algorithm qr_dqn_cvar --episodes 4
+.\.venv\Scripts\python.exe -m experiments.run_learning_audit --output-dir reports/learning-pilot-v1
 ```
 
 Run a synthetic environment integration demonstration (not a paper benchmark):
@@ -130,3 +137,5 @@ than providing learning-performance or static-CVaR-optimality evidence.
 The stochastic audit uses validation scenarios by default and keeps the test
 split closed. Its small-sample risk/interval summaries are development
 diagnostics, not paper-level evidence of improvement.
+The multi-seed neural audit likewise keeps test closed and uses a tiny explicit
+development budget; it does not establish convergence or risk reduction.
