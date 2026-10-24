@@ -10,7 +10,7 @@ from risk_aware_v2x.agents.schedules import EpsilonSchedule
 
 
 def replay_sample(task_id=1, *, terminal=False):
-    observation = EncodedObservation(1, (float(task_id), .5), (True, True, False), 1, task_id)
+    observation = EncodedObservation(2, (float(task_id), .5), (True, True, False), 1, task_id)
     following = None if terminal else replace(observation, task_id=task_id + 1)
     return DecisionTransition(observation, 1, 3, 2, 3., 2.9, 0. if terminal else .81,
                               following, terminal)
@@ -64,6 +64,7 @@ class ReplayAndScheduleTests(unittest.TestCase):
     def test_rejects_mutable_nonfinite_or_mismatched_observations(self):
         original = replay_sample()
         for observation in (replace(original.observation, values=[1., 2.]),
+                            replace(original.observation, schema_version=1),
                             replace(original.observation, values=(float("inf"),)),
                             replace(original.observation, action_mask=(False, True, False))):
             with self.subTest(observation=observation), self.assertRaises(ValueError):

@@ -7,8 +7,8 @@ import platform
 from dataclasses import asdict
 
 from risk_aware_v2x.agents import DecisionAdapter, FeatureScales, ObservationEncoder
-from risk_aware_v2x.baselines import AlwaysMEC, AlwaysV2V, MinimumEstimatedLatency, UniformRandom
 from .run_environment_smoke import _json_value, build_smoke_scenario
+from .comparison_policies import comparison_policies
 
 
 def run_comparison(*, seed: int = 7, policy_seed: int = 17,
@@ -17,11 +17,9 @@ def run_comparison(*, seed: int = 7, policy_seed: int = 17,
     scales = FeatureScales()
     encoder = ObservationEncoder(max_server_vehicles=environment.config.max_server_vehicles, scales=scales)
     adapter = DecisionAdapter(environment, encoder, gamma_per_slot=gamma_per_slot)
-    policies = {
-        "always_mec": AlwaysMEC(), "always_v2v": AlwaysV2V(),
-        "uniform_random": UniformRandom(seed=policy_seed),
-        "minimum_estimated_latency": MinimumEstimatedLatency(),
-    }
+    adapter.reset(seed=seed)
+    policies, policy_configuration = comparison_policies(environment.config, environment.users.values(),
+        environment.server_vehicles.values(), seed=policy_seed)
     reports = {}
     for name, policy in policies.items():
         adapter.reset(seed=seed)
@@ -56,7 +54,8 @@ def run_comparison(*, seed: int = 7, policy_seed: int = 17,
             } for item in transitions],
         }
     return {
-        "report_schema_version": 1, "purpose": "synthetic policy/adapter integration audit, not a paper benchmark",
+        "report_schema_version": 2, "purpose": "synthetic policy/adapter integration audit, not a paper benchmark",
+        "policy_configuration": policy_configuration,
         "environment_seed": seed, "policy_seed": policy_seed,
         "python_version": platform.python_version(), "gamma_per_slot": adapter.gamma_per_slot,
         "configuration": asdict(environment.config), "scenario": scenario,

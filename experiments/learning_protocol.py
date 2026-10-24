@@ -6,11 +6,14 @@ from dataclasses import asdict, dataclass, replace
 from pathlib import Path
 
 from risk_aware_v2x.agents import FeatureScales
+from risk_aware_v2x.agents.encoding import ENCODED_OBSERVATION_SCHEMA_VERSION
 from risk_aware_v2x.agents.neural import ALGORITHMS, AgentConfig
 from risk_aware_v2x.agents.schedules import EpsilonSchedule
 from risk_aware_v2x.entities._validation import require_non_negative_int, require_positive_int
+from risk_aware_v2x.environment.observations import RAW_OBSERVATION_SCHEMA_VERSION
 from risk_aware_v2x.scenarios.generator import canonical_json
 from risk_aware_v2x.scenarios.protocol import DevelopmentProtocol, _unique_object
+from .comparison_policies import BASELINE_SUITE_VERSION
 
 
 @dataclass(frozen=True, slots=True)
@@ -27,13 +30,22 @@ class LearningProtocol:
     epsilon_schedule: EpsilonSchedule
     feature_scales: FeatureScales
     selection_rule: str = "fixed-final-training-episode"
-    schema_version: int = 1
+    schema_version: int = 2
     purpose: str = "development-learning-audit-not-final-paper-protocol"
+    raw_observation_schema_version: int = RAW_OBSERVATION_SCHEMA_VERSION
+    encoder_schema_version: int = ENCODED_OBSERVATION_SCHEMA_VERSION
+    baseline_suite_version: int = BASELINE_SUITE_VERSION
 
     def __post_init__(self):
         require_positive_int("schema_version", self.schema_version)
-        if self.schema_version != 1 or self.purpose != "development-learning-audit-not-final-paper-protocol":
-            raise ValueError("only the development learning protocol v1 is supported")
+        if self.schema_version != 2 or self.purpose != "development-learning-audit-not-final-paper-protocol":
+            raise ValueError("use development learning protocol v2; v1 input/baseline contracts are not interchangeable")
+        for name, version in (("raw_observation_schema_version", RAW_OBSERVATION_SCHEMA_VERSION),
+                              ("encoder_schema_version", ENCODED_OBSERVATION_SCHEMA_VERSION),
+                              ("baseline_suite_version", BASELINE_SUITE_VERSION)):
+            require_positive_int(name, getattr(self, name))
+            if getattr(self, name) != version:
+                raise ValueError(f"unsupported {name}")
         if not isinstance(self.revision, str) or not self.revision.strip():
             raise ValueError("learning protocol revision is required")
         if (not isinstance(self.scenario_protocol_sha256, str)

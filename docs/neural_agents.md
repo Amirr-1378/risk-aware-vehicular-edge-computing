@@ -172,6 +172,12 @@ the next episode index and physical training
 clock. Checkpoints are episode-boundary snapshots; in-flight simulator tasks,
 queries, and unfinished decision intervals are **not** resumable mid-episode.
 
+The current input schema is version 2 (`39+15*M` features), including the own
+task's original deadline. Existing v1 artifacts are preserved but rejected by
+the encoder-signature check; they are not automatically padded or resumed.
+The stochastic runner now defaults to `learning_pilot_v2.json` and comparison
+suite 2. See [combined_cost_baseline.md](combined_cost_baseline.md).
+
 Tests verify the next exploratory action and optimizer update after loading,
 as well as 2+2 resumed episodes versus 4 uninterrupted episodes: identical
 local weights, replay/RNG state, and final greedy evaluation. This is a tested

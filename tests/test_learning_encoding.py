@@ -18,7 +18,7 @@ class ObservationEncodingTests(unittest.TestCase):
 
     def test_fixed_dimension_and_all_zero_padding(self):
         encoded = self.encoder.encode(self.observation)
-        self.assertEqual(self.encoder.dimension, 38 + 15 * 3)
+        self.assertEqual(self.encoder.dimension, 39 + 15 * 3)
         self.assertEqual(len(encoded.values), self.encoder.dimension)
         self.assertEqual(encoded.values[-30:], (0.,) * 30)
         self.assertEqual(encoded.action_mask, (True, True, False, False))
@@ -37,6 +37,14 @@ class ObservationEncodingTests(unittest.TestCase):
     def test_custom_fixed_reference_scales(self):
         encoder = ObservationEncoder(max_server_vehicles=3, scales=FeatureScales(input_bits=1_000))
         self.assertEqual(encoder.encode(self.observation).values[0], 1.)
+
+    def test_original_deadline_is_explicit_even_at_zero_slack_and_shared_with_neural_policy(self):
+        raw = replace(self.observation, deadline_s=.6, deadline_slack_s=0., elapsed_deadline_fraction=1.)
+        encoded = self.encoder.encode(raw)
+        features = dict(zip(self.encoder.feature_names, encoded.values, strict=True))
+        self.assertEqual(encoded.schema_version, 2)
+        self.assertEqual(features["task.deadline"], .6)
+        self.assertEqual(features["task.deadline_slack"], 0.)
 
     def test_heading_is_periodic_not_discontinuous_raw_angle(self):
         one = self.encoder.encode(replace(self.observation, user_heading_rad=.4))
@@ -63,14 +71,15 @@ class ObservationEncodingTests(unittest.TestCase):
     def test_zero_server_capacity_still_encodes_mec(self):
         encoder = ObservationEncoder(max_server_vehicles=0, scales=FeatureScales())
         raw = replace(self.observation, servers=(), action_mask=(True,))
-        self.assertEqual(len(encoder.encode(raw).values), 38)
+        self.assertEqual(len(encoder.encode(raw).values), 39)
 
     def test_invalid_schema_capacity_mask_and_nonfinite_values(self):
-        for change in ({"schema_version": 2}, {"servers": ()},
+        for change in ({"schema_version": 1}, {"servers": ()},
                        {"action_mask": (True, True, True, False)},
                        {"action_mask": (False, True, False, False)},
                        {"action_mask": (True,)},
                        {"action_mask": (True, 1, False, False)},
+                       {"deadline_s": 0.}, {"deadline_s": float("nan")},
                        {"deadline_slack_s": float("nan")}, {"user_heading_rad": float("inf")}):
             with self.subTest(change=change), self.assertRaises(ValueError):
                 self.encoder.encode(replace(self.observation, **change))

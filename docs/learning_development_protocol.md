@@ -1,4 +1,4 @@
-# Multi-Seed Neural Development Audit v1
+# Multi-Seed Neural Development Audit v2
 
 Status: implemented bounded stochastic training, fixed-final-model validation,
 matched analytical comparisons, and explicit training-seed diagnostics.
@@ -8,13 +8,20 @@ limitations remain those of [development_protocol.md](development_protocol.md).
 
 ## Versioned contract and development budget
 
-The checked-in `experiments/configs/learning_pilot_v1.json` binds to the exact
+The current `experiments/configs/learning_pilot_v2.json` binds to the exact
 canonical SHA256 of `development_v1.json`'s expanded scenario plan. A changed
 physical plan, undeclared agent seed/profile, excessive split prefix, or
 inconsistent CVaR confidence is rejected before scene construction or output.
 The learning plan has its own canonical hash. Reports preserve both expanded
 plans, encoder/scales, scenario manifests, seeds, actual source hash, Git
 revision/dirty status, package versions, and CPU/runtime settings.
+
+Version 2 records raw/encoded input schemas 2 and fixed-baseline suite 2. It
+adds the own original task deadline to every policy's inputs and introduces
+the cached combined-cost comparison. The v1 configuration and local artifacts
+are preserved as historical records, but are not load-compatible with v2.
+See [combined_cost_baseline.md](combined_cost_baseline.md) for the equations,
+shared public static assumptions, and explicit migration boundary.
 
 | Pilot choice | Value | Meaning/status |
 | --- | --- | --- |
@@ -77,13 +84,15 @@ optimizer, replay contents, and exploration states. The policy receives only
 the existing encoded cached observations/masks. Scenario manifests, future
 arrivals, and terminal truth metrics are report-only diagnostics.
 
-AlwaysMEC, AlwaysV2V, UniformRandom, and MinimumEstimatedLatency are evaluated
+AlwaysMEC, AlwaysV2V, UniformRandom, MinimumEstimatedLatency, and
+MinimumEstimatedCombinedCost are evaluated
 once per validation case/profile, not duplicated and counted as independent
 across agent seeds. Their scene fingerprints and channel seed keys match the
 learned methods. They still use the common mandatory query/cache protocol.
 MinimumEstimatedLatency remains latency-only, not a combined-cost greedy
-baseline. Query-free MEC, combined-cost greedy, and the adapted paper
-best-response baseline are not implemented by this stage.
+baseline. The combined-cost rule is a myopic point projection, not an exact
+expected-cost/Bellman optimizer. Query-free MEC and the adapted paper
+best-response baseline remain unimplemented.
 
 The shifted profiles reuse the same validation seed keys for controlled
 development comparisons; do not pool them as independent replications. Models
@@ -116,7 +125,7 @@ S*E cells, users, or tasks as independent runs. Per-model episode mean/VaR/
 CVaR remains available separately; **no CVaR pooled across trained policies**
 and no average-of-conditional-CVaRs-as-mixture-CVaR is reported.
 
-For a mean-cost contrast (algorithm minus AlwaysMEC, or QR-CVaR minus neutral
+For a mean-cost contrast (algorithm minus AlwaysMEC or combined-cost greedy, or QR-CVaR minus neutral
 QR), resample matching **training-seed** keys jointly. Each key contributes
 one difference of validation means. The existing paired percentile bootstrap
 is reused; baseline validation means are fixed constants across seed rows.
@@ -140,11 +149,11 @@ Install the optional learning dependencies, then from the repository root:
 
 ```powershell
 $env:PYTHONPATH = "src"
-.\.venv\Scripts\python.exe -m experiments.run_learning_audit --output-dir reports/learning-pilot-v1
+.\.venv\Scripts\python.exe -m experiments.run_learning_audit --output-dir reports/learning-pilot-v2
 ```
 
 This runs 8 trained models (4 algorithms x 2 seeds), 32 training episodes,
-64 learned validation episodes, and 32 fixed-policy validation episodes.
+64 learned validation episodes, and 40 fixed-policy validation episodes (136 total).
 The output directory must not already exist, even if empty. It receives
 `report.json` and 8 `checkpoints/<algorithm>-seed-<seed>-final.pt` files.
 Omitting `--output-dir` prints a report without saving checkpoints. Runtime
@@ -162,16 +171,17 @@ be substituted. Changing source/configuration/encoder invalidates exact
 continuation provenance; existing checkpoints/reports are never overwritten.
 
 The common CPU loop is now `experiments/learning_runtime.py`; both smoke and
-stochastic entry points use it. Neural algorithm, physical, environment, and
-analytical-baseline code are unchanged. Tests cover final-checkpoint metadata,
+stochastic entry points use it. Core neural update and physical kernels are
+unchanged; observation/encoder schemas and the fixed-policy suite are upgraded
+in v2. Tests cover final-checkpoint metadata,
 all four algorithms, seed/profile order invariance, matched scenes, full cost
 conservation, evaluation immutability, fixed budgets, no test execution,
 empty episodes, conditional-seed formulas, failure propagation, protocol
 rejection, global RNG isolation, and exclusive artifacts.
 
-## Local verification snapshot (2026-10-22)
+## Historical v1 verification snapshot (2026-10-22)
 
-The checked-in pilot configuration completed 8 models and all 128 planned
+The historical v1 pilot configuration completed 8 models and all 128 planned
 training/validation executions. Each model ingested 77 transitions and made
 46 gradient updates. All admitted tasks completed in every execution; this is
 an observed pilot check, not a universal deadline/completion theorem. No test
@@ -186,6 +196,7 @@ learning-plan SHA256 `ae2c93afe3da38dc59678b58b90da43ce4fe0bdbdaa3e96aabe74a6669
 The 1,912,386-byte report is local at `reports/learning-pilot-v1/report.json`
 with its final checkpoints, all ignored by Git. No convergence, comparative
 improvement, or reliable CVaR estimate is inferred from these counts.
+This snapshot used input schema/suite v1; it is not a v2 training result.
 
 Next: inspect pilot diagnostics for implementation errors without tuning to
 make baselines lose; calibrate physical/workload assumptions with defensible

@@ -1,0 +1,29 @@
+{
+  "schema_version": 2,
+  "purpose": "development-learning-audit-not-final-paper-protocol",
+  "revision": "learning-pilot-v2",
+  "raw_observation_schema_version": 2,
+  "encoder_schema_version": 2,
+  "baseline_suite_version": 2,
+  "scenario_protocol_sha256": "56a17a4831c005c2343ac3139b8b29d33eeede5f4f9170985440ead5def2090d",
+  "training_profile": "nominal",
+  "validation_profiles": ["nominal", "high_load", "fast_servers", "harsh_channel"],
+  "training_episodes": 4,
+  "validation_cases": 2,
+  "agent_seeds": [11, 29],
+  "algorithms": ["dqn", "double_dqn", "qr_dqn", "qr_dqn_cvar"],
+  "selection_rule": "fixed-final-training-episode",
+  "common_agent": {
+    "hidden_sizes": [64, 64], "num_quantiles": 51, "learning_rate": 0.001,
+    "batch_size": 16, "replay_capacity": 2048, "learning_starts": 32,
+    "target_update_interval": 50, "huber_kappa": 1.0, "max_grad_norm": 10.0,
+    "gamma_per_slot": 1.0, "alpha": 0.9, "risk_weight": 0.5
+  },
+  "epsilon_schedule": {"initial": 1.0, "final": 0.05, "decay_slots": 1000},
+  "feature_scales": {
+    "input_bits": 1000000.0, "output_bits": 100000.0, "cpu_cycles": 1000000000.0,
+    "time_s": 1.0, "energy_j": 1.0, "speed_mps": 30.0, "distance_m": 100.0,
+    "cpu_hz": 1000000000.0, "bandwidth_hz": 1000000.0, "rate_bps": 10000000.0,
+    "snr_linear": 100.0, "task_count": 10.0, "contact_margin": 10.0
+  }
+}

@@ -8,7 +8,6 @@ from dataclasses import asdict
 from pathlib import Path
 
 from risk_aware_v2x.agents import DecisionAdapter, FeatureScales, ObservationEncoder
-from risk_aware_v2x.baselines import AlwaysMEC, AlwaysV2V, MinimumEstimatedLatency, UniformRandom
 from risk_aware_v2x.entities._validation import require_positive_int
 from risk_aware_v2x.environment.evaluation import terminal_metrics
 from risk_aware_v2x.models.randomness import RandomStreams
@@ -16,6 +15,7 @@ from risk_aware_v2x.risk.statistics import episode_cost_summary, paired_mean_int
 from risk_aware_v2x.scenarios import generate_scenario
 from risk_aware_v2x.scenarios.protocol import DevelopmentProtocol
 from .provenance import source_provenance
+from .comparison_policies import comparison_policies
 
 DEFAULT_PROTOCOL = Path(__file__).resolve().parent / "configs" / "development_v1.json"
 
@@ -42,15 +42,18 @@ def run_scenario_audit(*, protocol: DevelopmentProtocol | None = None, profile: 
     # Validate the complete selected prefix before constructing any scene.
     keys = [plan.episode_seeds(split, index) for index in range(cases)]
     records, scenes = {}, []
+    policy_configuration = None
     for episode in keys:
         scene = generate_scenario(spec, seed=episode.scenario_seed)
         identifier = f"{profile}:{split}:{episode.index}"
         fingerprint = scene.fingerprint
         scenes.append({"episode_id": identifier, "seeds": asdict(episode),
                        "fingerprint": fingerprint, "manifest": scene.manifest()})
-        policies = {"always_mec": AlwaysMEC(), "always_v2v": AlwaysV2V(),
-                    "minimum_estimated_latency": MinimumEstimatedLatency(),
-                    "uniform_random": UniformRandom(seed=episode.policy_seed)}
+        policies, contract = comparison_policies(scene.configuration, scene.users, scene.servers,
+                                                 seed=episode.policy_seed)
+        if policy_configuration is not None and contract != policy_configuration:
+            raise ValueError("fixed-policy assumptions must remain constant across paired episodes")
+        policy_configuration = contract
         for name, policy in policies.items():
             environment = scene.environment()
             encoder = ObservationEncoder(max_server_vehicles=spec.max_server_vehicle_slots, scales=FeatureScales())
@@ -90,7 +93,8 @@ def run_scenario_audit(*, protocol: DevelopmentProtocol | None = None, profile: 
                 resamples=plan.bootstrap_resamples, confidence=plan.bootstrap_confidence,
             ))
     return {
-        "report_schema_version": 1, "purpose": "stochastic development audit; no calibrated performance claim",
+        "report_schema_version": 2, "purpose": "stochastic development audit; no calibrated performance claim",
+        "policy_configuration": policy_configuration,
         "protocol": asdict(plan), "protocol_sha256": plan.fingerprint,
         "profile": profile, "split": split, "cases": cases,
         "python_version": platform.python_version(), "provenance": source_provenance(),

@@ -17,7 +17,7 @@ and independent seeded RNG streams with numeric and state-transition tests.
 The time-slotted multi-user environment now joins those components, with
 cached observations, batched actions, queries, MEC recovery, slot costs, and
 drain-to-completion tests. Fixed-size observation encoding, complete
-decision-epoch transitions, four simple comparison policies, and exact
+decision-epoch transitions, five analytical comparison policies, and exact
 finite-distribution CVaR scoring are implemented and tested. CPU DQN,
 Double DQN, QR-DQN, and mean-CVaR-distorted QR agents now include replay,
 training updates, greedy evaluation, and resumable episode-boundary checkpoints.
@@ -27,6 +27,9 @@ parameters are explicitly synthetic. A bounded multi-seed neural audit now
 connects those scenarios to fixed-final-model training/validation and matched
 analytical baselines, with separate per-model risk and conditional seed
 variation. Calibrated paper-scale experiments remain a subsequent milestone.
+The fixed-policy suite now includes cached combined-cost greedy control with
+shared objective/hardware assumptions. Own-task deadlines are explicit in
+raw/vector input schema v2; old checkpoints are preserved but incompatible.
 
 The approved design baseline is documented in:
 
@@ -47,6 +50,8 @@ The approved design baseline is documented in:
   scenarios, parameter provenance/gaps, split/seed plan, metrics, and paired audits.
 - [`docs/learning_development_protocol.md`](docs/learning_development_protocol.md):
   bounded multi-seed training, final-model validation, pairing, and statistical units.
+- [`docs/combined_cost_baseline.md`](docs/combined_cost_baseline.md): combined-cost
+  heuristic formulas, public calibration assumptions, and input/baseline version 2.
 
 The implementation milestones are:
 
@@ -61,8 +66,10 @@ The implementation milestones are:
    plans, terminal metrics, and paired fixed-policy evaluation infrastructure;
 8. **complete:** bounded multi-seed stochastic neural training/validation pilot
    infrastructure, final-model artifacts, and conditional training-seed diagnostics;
-9. **next:** empirical calibration, larger learned training, frozen paper
-   protocols, adapted paper/combined-cost baselines, and final evaluation.
+9. **complete:** cached combined-cost greedy baseline, shared fixed-policy suite,
+   explicit own-deadline input schema v2, and versioned comparison integration;
+10. **next:** empirical calibration, larger learned training, frozen paper
+   protocols, adapted paper/query-free MEC baselines, and final evaluation.
 
 ## Repository layout
 
@@ -113,7 +120,7 @@ virtual environment, run:
 $env:PYTHONPATH = "src"
 .\.venv\Scripts\python.exe -m unittest discover -s tests -v
 .\.venv\Scripts\python.exe -m experiments.run_learning_smoke --algorithm qr_dqn_cvar --episodes 4
-.\.venv\Scripts\python.exe -m experiments.run_learning_audit --output-dir reports/learning-pilot-v1
+.\.venv\Scripts\python.exe -m experiments.run_learning_audit --output-dir reports/learning-pilot-v2
 ```
 
 Run a synthetic environment integration demonstration (not a paper benchmark):

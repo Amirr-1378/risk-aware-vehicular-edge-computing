@@ -20,7 +20,7 @@ def neural_fixture(algorithm="dqn", **changes):
                             "batch_size": 2, "learning_starts": 2, "replay_capacity": 64,
                             "target_update_interval": 2, "gamma_per_slot": .9, **changes})
     agent = NeuralCostAgent(config, encoder, seed=8)
-    observation = EncodedObservation(1, (1.,) + (0.,) * (encoder.dimension - 1),
+    observation = EncodedObservation(2, (1.,) + (0.,) * (encoder.dimension - 1),
                                      (True, True, False), 1, 1)
     transition = DecisionTransition(observation, 0, 0, 2, 3., 2.9, .81,
                                     replace(observation, task_id=2), False)
@@ -214,6 +214,21 @@ class NeuralAgentTests(unittest.TestCase):
         self.assertEqual(AgentConfig(algorithm="qr_dqn").effective_risk_weight, 0.)
         self.assertEqual(AgentConfig(algorithm="qr_dqn_cvar").effective_risk_weight, .5)
         self.assertEqual(AgentConfig(algorithm="dqn").atom_count, 1)
+
+    def test_legacy_encoder_checkpoint_is_rejected_without_modifying_the_file(self):
+        agent, encoder, _ = neural_fixture()
+        with tempfile.TemporaryDirectory() as directory:
+            current = Path(directory) / "current.pt"
+            legacy = Path(directory) / "legacy.pt"
+            agent.save_checkpoint(current)
+            state = torch.load(current, weights_only=True)
+            state["encoder"]["schema_version"] = 1
+            state["encoder"]["dimension"] -= 1
+            torch.save(state, legacy)
+            before = legacy.read_bytes()
+            with self.assertRaisesRegex(ValueError, "encoder"):
+                NeuralCostAgent.load_checkpoint(legacy, encoder)
+            self.assertEqual(before, legacy.read_bytes())
 
     def test_checkpoint_rejects_invalid_optimizer_parameters_and_nonfinite_state(self):
         agent, encoder, sample = neural_fixture()

@@ -20,7 +20,7 @@ from .learning_runtime import deterministic_cpu, run_episode, runtime_metadata
 from .provenance import source_provenance
 from .run_scenario_audit import DEFAULT_PROTOCOL, run_scenario_audit, save_audit_report
 
-DEFAULT_LEARNING_PROTOCOL = Path(__file__).resolve().parent / "configs" / "learning_pilot_v1.json"
+DEFAULT_LEARNING_PROTOCOL = Path(__file__).resolve().parent / "configs" / "learning_pilot_v2.json"
 
 
 def model_fingerprint(agent: NeuralCostAgent) -> str:
@@ -67,14 +67,15 @@ def summarize_runs(runs: list[dict], analytical: dict, learning: LearningProtoco
         expected = {str(seed) for seed in learning.agent_seeds}
         if any(set(values) != expected for values in means.values()):
             raise ValueError("incomplete algorithm/seed grid; failed runs must not be omitted")
-        reference = analytical[profile]["episode_total_cost_summaries"]["always_mec"]["mean_episode_total_cost"]
+        references = {name: analytical[profile]["episode_total_cost_summaries"][name]["mean_episode_total_cost"]
+                      for name in ("always_mec", "minimum_estimated_combined_cost")}
         comparisons = {}
         if len(expected) >= 2:
-            pairs = [(algorithm, "always_mec") for algorithm in learning.algorithms]
+            pairs = [(algorithm, reference) for algorithm in learning.algorithms for reference in references]
             if {"qr_dqn", "qr_dqn_cvar"} <= set(means):
                 pairs.append(("qr_dqn_cvar", "qr_dqn"))
             for a, b in pairs:
-                other = {seed: reference for seed in expected} if b == "always_mec" else means[b]
+                other = {seed: references[b] for seed in expected} if b in references else means[b]
                 comparisons[f"{a}_minus_{b}"] = asdict(paired_mean_interval(
                     means[a], other,
                     rng=RandomStreams(scenarios.master_seed).stream(f"learning-seed-bootstrap:{profile}:{a}:{b}"),
@@ -133,7 +134,10 @@ def run_learning_audit(*, learning: LearningProtocol | None = None,
                 checkpoint = f"checkpoints/{algorithm}-seed-{seed}-final.pt"
                 if output is not None:
                     agent.save_checkpoint(output / checkpoint, run_metadata={
-                        "run_kind": "stochastic-learning-audit-v1",
+                        "run_kind": "stochastic-learning-audit-v2",
+                        "raw_observation_schema_version": learning.raw_observation_schema_version,
+                        "encoder_schema_version": learning.encoder_schema_version,
+                        "baseline_suite_version": learning.baseline_suite_version,
                         "learning_protocol_sha256": learning.fingerprint,
                         "scenario_protocol_sha256": scenarios.fingerprint,
                         "source_sha256": provenance["source_sha256"],
@@ -173,7 +177,7 @@ def run_learning_audit(*, learning: LearningProtocol | None = None,
         if [item["fingerprint"] for item in audit["scenarios"]] != [scene.fingerprint for scene in validation_scenes[profile]]:
             raise RuntimeError("analytical and learned policies used different validation scenes")
     report = {
-        "report_schema_version": 1, "purpose": "synthetic multi-seed learning audit; not a paper benchmark",
+        "report_schema_version": 2, "purpose": "synthetic multi-seed learning audit; not a paper benchmark",
         "learning_protocol": asdict(learning), "learning_protocol_sha256": learning.fingerprint,
         "scenario_protocol": asdict(scenarios), "scenario_protocol_sha256": scenarios.fingerprint,
         "provenance": provenance, "runtime": runtime, "encoder": encoder_signature(encoder),

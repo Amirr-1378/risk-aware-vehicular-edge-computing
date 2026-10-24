@@ -8,13 +8,13 @@ from ..entities._validation import (
     require_non_negative_int, require_positive_int,
 )
 from ..models.randomness import RandomStreams
-from .encoding import EncodedObservation
+from .encoding import ENCODED_OBSERVATION_SCHEMA_VERSION, EncodedObservation
 from .transitions import DecisionTransition
 
 
 def validate_observation(observation: EncodedObservation) -> None:
-    if not isinstance(observation, EncodedObservation) or observation.schema_version != 1:
-        raise ValueError("expected encoded observation schema v1")
+    if not isinstance(observation, EncodedObservation) or observation.schema_version != ENCODED_OBSERVATION_SCHEMA_VERSION:
+        raise ValueError("expected encoded observation schema v2")
     require_non_negative_int("user_vehicle_id", observation.user_vehicle_id)
     require_non_negative_int("task_id", observation.task_id)
     if not isinstance(observation.values, tuple) or not observation.values:

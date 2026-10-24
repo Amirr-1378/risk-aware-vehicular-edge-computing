@@ -60,6 +60,15 @@ class LearningProtocolTests(unittest.TestCase):
             self.assertEqual(config, replace(learning.common_agent, algorithm=algorithm))
             self.assertEqual(config.effective_risk_weight, .5 if algorithm == "qr_dqn_cvar" else 0.)
 
+    def test_old_learning_contract_is_preserved_but_rejected_not_silently_upgraded(self):
+        with self.assertRaisesRegex(ValueError, "v2"):
+            LearningProtocol.load(DEFAULT_LEARNING_PROTOCOL.with_name("learning_pilot_v1.json"))
+        learning, _ = fixture_plans()
+        for changes in ({"raw_observation_schema_version": 1}, {"encoder_schema_version": 1},
+                        {"baseline_suite_version": 1}):
+            with self.subTest(changes=changes), self.assertRaises(ValueError):
+                replace(learning, **changes)
+
     def test_invalid_or_mutable_protocol_settings_are_rejected(self):
         learning, _ = fixture_plans()
         for changes in ({"training_episodes": 0}, {"validation_cases": True},
@@ -143,7 +152,7 @@ class LearningAuditTests(unittest.TestCase):
                 self.assertAlmostEqual(summary["nominal_tail_mass_in_episodes"], .2)
         for profile in self.report["conditional_training_seed_summaries"].values():
             self.assertIn("NOT scenario-population", profile["interval_scope"])
-            self.assertEqual(len(profile["paired_seed_mean_intervals"]), 5)
+            self.assertEqual(len(profile["paired_seed_mean_intervals"]), 9)
             self.assertTrue(all(value["pairs"] == 2 for value in profile["paired_seed_mean_intervals"].values()))
             self.assertNotIn("cvar_episode_total_cost", profile)
 
@@ -237,6 +246,9 @@ class LearningAuditTests(unittest.TestCase):
             self.assertEqual(metadata["scenario_protocol_sha256"], self.scenarios.fingerprint)
             self.assertEqual(metadata["source_sha256"], report["provenance"]["source_sha256"])
             self.assertEqual(metadata["selection_rule"], "fixed-final-training-episode")
+            self.assertEqual(metadata["raw_observation_schema_version"], 2)
+            self.assertEqual(metadata["encoder_schema_version"], 2)
+            self.assertEqual(metadata["baseline_suite_version"], 2)
             self.assertEqual(agent.gradient_updates, 5)
             saved = (output / "report.json").read_bytes()
             json.loads(saved)

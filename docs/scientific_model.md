@@ -633,7 +633,8 @@ an invariant, not the principal performance claim.
 1. Always MEC.
 2. Always V2V with MEC fallback.
 3. Uniform random over observed feasible actions.
-4. Greedy minimum one-step expected cost.
+4. Greedy cached plug-in remaining-task combined cost (implemented as
+   `MinimumEstimatedCombinedCost`; not an exact expectation over future uncertainty).
 5. Paper best-response baseline with an explicitly documented adaptation for
    selecting an individual server vehicle.
 6. DQN.

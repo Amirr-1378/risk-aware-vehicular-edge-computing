@@ -5,7 +5,9 @@ from dataclasses import dataclass, fields
 
 from ..entities import QueryStatus
 from ..entities._validation import require_finite_float, require_non_negative_int, require_positive_float
-from ..environment.observations import OffloadingObservation, observed_valid_actions
+from ..environment.observations import RAW_OBSERVATION_SCHEMA_VERSION, OffloadingObservation, observed_valid_actions
+
+ENCODED_OBSERVATION_SCHEMA_VERSION = 2
 
 
 @dataclass(frozen=True, slots=True)
@@ -45,13 +47,13 @@ class EncodedObservation:
 
 
 class ObservationEncoder:
-    """Raw schema v1 -> vector schema v1. No running statistics or simulator access.
+    """Raw schema v2 -> vector schema v2. No running statistics or simulator access.
 
     No clipping: negative deadline slack and unusually large workloads remain
     distinguishable. Non-finite inputs/results are errors. Absent server blocks
     are entirely zero, including presence; present-but-masked blocks are kept.
     """
-    schema_version = 1
+    schema_version = ENCODED_OBSERVATION_SCHEMA_VERSION
     _query_order = (
         QueryStatus.NO_CACHE, QueryStatus.CACHE_VALID, QueryStatus.CACHE_EXPIRED,
         QueryStatus.QUERY_REQUEST_UPLINK, QueryStatus.QUERY_MEC_PROCESSING,
@@ -59,7 +61,7 @@ class ObservationEncoder:
     )
     _global_names = (
         "task.input", "task.output", "task.required_cycles", "task.remaining_cycles",
-        "task.deadline_slack", "task.energy_budget", "task.elapsed_deadline_fraction",
+        "task.deadline", "task.deadline_slack", "task.energy_budget", "task.elapsed_deadline_fraction",
         "task.criticality_normal", "task.criticality_high", "task.criticality_critical",
         "user.battery_fraction", "user.speed", "user.heading_sin", "user.heading_cos",
         "user.distance_to_mec", "user.tx_power_fraction", "user.unassigned_count",
@@ -92,7 +94,7 @@ class ObservationEncoder:
         return len(self.feature_names)
 
     def encode(self, observation: OffloadingObservation) -> EncodedObservation:
-        if observation.schema_version != 1:
+        if observation.schema_version != RAW_OBSERVATION_SCHEMA_VERSION:
             raise ValueError("unsupported raw observation schema")
         if len(observation.servers) != self.max_server_vehicles:
             raise ValueError("observation server capacity differs from encoder")
@@ -107,6 +109,7 @@ class ObservationEncoder:
         values = [
             o.input_size_bits / s.input_bits, o.output_size_bits / s.output_bits,
             o.required_cpu_cycles / s.cpu_cycles, o.remaining_cpu_cycles / s.cpu_cycles,
+            require_positive_float("deadline_s", o.deadline_s) / s.time_s,
             o.deadline_slack_s / s.time_s, o.energy_budget_j / s.energy_j,
             o.elapsed_deadline_fraction, *(float(o.criticality_weight == level) for level in (1, 2, 4)),
             o.user_battery_fraction, o.user_speed_mps / s.speed_mps,
@@ -137,4 +140,4 @@ class ObservationEncoder:
                 float(r.same_mec_region), server.record_age_s / s.time_s, server.contact_margin / s.contact_margin,
             ))
         encoded = tuple(require_finite_float(name, value) for name, value in zip(self.feature_names, values, strict=True))
-        return EncodedObservation(1, encoded, o.action_mask, o.user_vehicle_id, o.task_id)
+        return EncodedObservation(self.schema_version, encoded, o.action_mask, o.user_vehicle_id, o.task_id)

@@ -7,20 +7,26 @@ establishes an algorithmic improvement. This supplies an auditable interface to
 the simulator described in
 [`simulation_environment.md`](simulation_environment.md).
 
-## Received information and vector schema v1
+## Received information and vector schema v2
 
 `ObservationEncoder(max_server_vehicles=M, scales=FeatureScales(...))` consumes
-only immutable raw schema-v1 `OffloadingObservation` records. It never reads
+only immutable raw schema-v2 `OffloadingObservation` records. It never reads
 the simulator, live server queues, or future arrivals/channels. Baselines
 consume those same raw records; neural policies will consume their encoding.
 Neither representation gives an oracle feasibility mask.
 
-The vector has `38 + 15*M` dimensionless entries in the order exposed by
+The vector has `39 + 15*M` dimensionless entries in the order exposed by
 `encoder.feature_names`:
 
-- 32 task, own-user, cache-age, and cached-MEC features;
+- 33 task, own-user, cache-age, and cached-MEC features;
 - six query-status one-hot entries, in explicit versioned order;
 - 15 features per cached server slot, including presence and record age.
+
+Version 2 adds the own task's original relative deadline as `task.deadline`,
+in addition to remaining slack and elapsed fraction. This avoids an undefined
+reconstruction at exactly zero slack. Both baseline and neural inputs receive
+it; v1 encoders/checkpoints are not silently reused. See
+[combined_cost_baseline.md](combined_cost_baseline.md) for the migration contract.
 
 Criticality uses three one-hot entries for weights 1/2/4. Heading uses sin/cos,
 not a discontinuous raw angle. Absolute timestamps and task/user/server IDs
@@ -167,6 +173,7 @@ that their risk-neutral control results prove our risk-sensitive controller.
 | AlwaysV2V | Any observed-valid V2V; minimum estimated service time within SVs; MEC if none |
 | UniformRandom | Uniform over all observed-valid actions, including MEC |
 | MinimumEstimatedLatency | Minimum estimated service time over MEC and SVs |
+| MinimumEstimatedCombinedCost | Myopic remaining combined cost with shared weights/hardware and aged cached-contact guard |
 
 Estimated service time is cached uplink + cached backlog delay + task CPU +
 cached downlink. MEC uses its supplied queue-delay estimate once; SV uses
@@ -186,10 +193,11 @@ UniformRandom requires an explicit seed and separate persistent named streams
 per user. It does not advance global randomness or physical channel streams.
 Construct it anew with the same seed for a reproducible new evaluation run.
 
-MinimumEstimatedLatency is supplementary, **not** the approved greedy
-one-step combined-cost baseline: the cached schema alone does not expose all
-power/CPU-energy calibration needed to estimate that objective. That baseline
-and the adapted paper best-response baseline remain unimplemented. DQN,
+MinimumEstimatedLatency remains supplementary and latency-only. The combined
+cost rule is now implemented using declared static power/kappa assumptions
+and the shared objective; it is a plug-in remaining-task heuristic, **not**
+an exact expected-cost or one-slot Bellman optimizer. The adapted paper
+best-response baseline remains unimplemented. DQN,
 Double DQN, and learned risk-neutral/risk-distorted QR-DQN are implemented
 separately in the optional neural layer. No simple policy here is named
 after the paper's method or claimed to reproduce it.
@@ -203,7 +211,7 @@ python -m unittest discover -s tests -v
 ```
 
 The finite-JSON report shares one scenario/configuration and environment seed
-across all four rules, while recording the separate random-policy seed,
+across all five rules, while recording the separate random-policy seed,
 encoder schema/scales/names, action traces, decision durations, and raw and
 discounted cost decompositions. It checks prefix/transition conservation after
 drain. The scenario is deliberately small and synthetic; its results must not

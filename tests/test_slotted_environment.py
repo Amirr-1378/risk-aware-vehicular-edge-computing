@@ -264,7 +264,7 @@ class QueryAndObservationTests(unittest.TestCase):
         observation = env.observations[1]
         self.assertEqual([slot.record.server_vehicle_id if slot else None for slot in observation.servers], [9, 12, None])
         self.assertEqual(observation.action_mask, (True, True, True, False))
-        self.assertEqual(observation.schema_version, 1)
+        self.assertEqual(observation.schema_version, 2)
 
     def test_no_registered_server_leaves_mec_as_only_valid_action(self) -> None:
         env = make_env(servers=[make_server(position_m=(600.0, 0.0))])

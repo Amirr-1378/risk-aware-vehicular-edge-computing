@@ -10,7 +10,7 @@ from experiments.run_environment_smoke import _json_value
 class BaselineSmokeTests(unittest.TestCase):
     def test_all_policies_finish_and_conserve_discounted_and_raw_cost(self):
         report = run_comparison(gamma_per_slot=.99)
-        self.assertEqual(len(report["policies"]), 4)
+        self.assertEqual(len(report["policies"]), 5)
         for policy in report["policies"].values():
             self.assertEqual(policy["metrics"]["completed_tasks"], 6.)
             self.assertEqual(len(policy["transitions"]), 6)
@@ -29,5 +29,5 @@ class BaselineSmokeTests(unittest.TestCase):
 
     def test_deterministic_policies_ignore_random_policy_seed(self):
         one, two = run_comparison(policy_seed=1), run_comparison(policy_seed=2)
-        for name in ("always_mec", "always_v2v", "minimum_estimated_latency"):
+        for name in ("always_mec", "always_v2v", "minimum_estimated_latency", "minimum_estimated_combined_cost"):
             self.assertEqual(one["policies"][name], two["policies"][name])

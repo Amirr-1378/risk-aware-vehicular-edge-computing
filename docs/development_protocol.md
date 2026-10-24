@@ -182,9 +182,11 @@ That later crossed agent-seed/scenario design requires its own uncertainty
 analysis. The need to report run uncertainty rather than only point estimates
 is discussed by [Agarwal et al.](https://arxiv.org/abs/2108.13264).
 
-Only AlwaysMEC, AlwaysV2V, UniformRandom, and supplementary minimum estimated
-latency are in this audit. All retain the mandatory cache/query protocol;
-query-free MEC and adapted paper/combined-cost baselines are still needed for
+The current v2 suite includes AlwaysMEC, AlwaysV2V, UniformRandom, supplementary
+minimum estimated latency, and the new cached combined-cost heuristic. See
+[combined_cost_baseline.md](combined_cost_baseline.md) for its assumptions and
+the own-deadline observation extension. All retain the mandatory cache/query protocol;
+query-free MEC and the adapted paper best-response baseline are still needed for
 the final end-to-end comparison. Do not tune parameters to make those methods
 lose, or interpret this infrastructure audit as a learned-policy result.
 

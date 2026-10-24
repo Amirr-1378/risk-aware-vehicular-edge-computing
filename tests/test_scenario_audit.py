@@ -22,7 +22,7 @@ def tiny_plan():
 class ScenarioAuditTests(unittest.TestCase):
     def test_paired_cases_use_same_scenes_and_complete_every_task_with_full_cost(self):
         report = run_scenario_audit(protocol=tiny_plan(), cases=2)
-        self.assertEqual(len(report["policies"]), 4)
+        self.assertEqual(len(report["policies"]), 5)
         reference = report["policies"]["always_mec"]
         for episodes in report["policies"].values():
             for expected, actual in zip(reference, episodes, strict=True):
@@ -30,7 +30,7 @@ class ScenarioAuditTests(unittest.TestCase):
                 self.assertEqual(expected["metrics"]["arrived_tasks"], actual["metrics"]["completed_tasks"])
                 self.assertAlmostEqual(actual["metrics"]["total_cost"],
                                        sum(actual["accounting"]["total_cost"].values()))
-        self.assertEqual(len(report["paired_mean_cost_difference_vs_always_mec"]), 3)
+        self.assertEqual(len(report["paired_mean_cost_difference_vs_always_mec"]), 4)
         json.dumps(report, allow_nan=False)
 
     def test_whole_seeded_report_reproduces(self):
