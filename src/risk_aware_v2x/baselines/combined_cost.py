@@ -5,8 +5,9 @@ from dataclasses import dataclass, fields
 
 from ..entities._validation import (
     require_finite_float, require_fraction, require_non_negative_float,
-    require_non_negative_int, require_positive_float,
+    require_positive_float,
 )
+from ..contracts import COST_MODEL_VERSION, validate_objective_weights
 from ..environment.observations import RAW_OBSERVATION_SCHEMA_VERSION, OffloadingObservation, observed_valid_actions
 from ..models.energy import cpu_energy_j, radio_energy_j
 from ..models.latency import transmission_time_s
@@ -24,20 +25,23 @@ class GreedyCostParameters:
     latency_weight: float
     energy_weight: float
     mec_weight: float
-    deadline_penalty: float
     user_max_tx_power_w: float
     user_rx_power_w: float
     server_tx_power_w: float
     server_rx_power_w: float
     server_cpu_energy_coefficient: float
     require_cached_contact: bool = True
+    cost_model_version: int = COST_MODEL_VERSION
 
     def __post_init__(self):
         for item in fields(self):
-            if item.name != "require_cached_contact":
+            if item.name not in ("require_cached_contact", "cost_model_version"):
                 object.__setattr__(self, item.name, require_non_negative_float(item.name, getattr(self, item.name)))
         if not isinstance(self.require_cached_contact, bool):
             raise TypeError("require_cached_contact must be boolean")
+        if isinstance(self.cost_model_version, bool) or self.cost_model_version != COST_MODEL_VERSION:
+            raise ValueError("unsupported greedy cost model")
+        validate_objective_weights(self.latency_weight, self.energy_weight, self.mec_weight)
 
 
 @dataclass(frozen=True, slots=True)
@@ -51,7 +55,7 @@ class EstimatedActionCost:
     service_time_s: float
     mobile_energy_j: float
     remaining_cached_contact_s: float | None
-    new_deadline_miss: bool
+    projected_deadline_miss: bool
     admissible: bool
     cost: float
 
@@ -61,7 +65,7 @@ class MinimumEstimatedCombinedCost:
 
     Future contention, arrivals, fading, and fallback are not predicted. The
     optional contact guard uses only aged cached contact estimates, not truth.
-    Already incurred latency/query energy and deadline penalties are sunk;
+    Already incurred latency/query energy is sunk; there is no deadline penalty;
     they remain in the simulator outcome, not in the action-dependent score.
     """
     def __init__(self, parameters: GreedyCostParameters):
@@ -71,15 +75,12 @@ class MinimumEstimatedCombinedCost:
 
     def estimate(self, observation: OffloadingObservation, action: int) -> EstimatedActionCost:
         if observation.schema_version != RAW_OBSERVATION_SCHEMA_VERSION:
-            raise ValueError("combined-cost estimates require raw observation schema v2")
+            raise ValueError("combined-cost estimates require raw observation schema v3")
         # This also validates the original mask/action without querying truth.
         service_s = estimated_service_time_s(observation, action)
         deadline_s = require_positive_float("deadline_s", observation.deadline_s)
         budget_j = require_positive_float("energy_budget_j", observation.energy_budget_j)
         slack_s = require_finite_float("deadline_slack_s", observation.deadline_slack_s)
-        criticality = require_non_negative_int("criticality_weight", observation.criticality_weight)
-        if criticality not in (1, 2, 4):
-            raise ValueError("unsupported criticality weight")
         p = self.parameters
         fraction = require_fraction("tx_power_fraction", observation.tx_power_fraction)
         contact_s = None
@@ -91,9 +92,9 @@ class MinimumEstimatedCombinedCost:
             age_s = require_non_negative_float("record_age_s", server.record_age_s)
             contact_s = max(0., record.estimated_contact_time_s - age_s)
             up_rate, down_rate = record.estimated_rate_bps, record.estimated_downlink_rate_bps
-        new_miss = 0. <= slack_s < service_s
+        projected_miss = service_s > slack_s  # Diagnostic only, NEVER an objective term.
         if not math.isfinite(service_s):
-            return EstimatedActionCost(service_s, math.inf, contact_s, new_miss, False, math.inf)
+            return EstimatedActionCost(service_s, math.inf, contact_s, projected_miss, False, math.inf)
         up_s = transmission_time_s(observation.input_size_bits, up_rate)
         down_s = transmission_time_s(observation.output_size_bits, down_rate)
         energies = [radio_energy_j(p.user_max_tx_power_w * fraction, up_s),
@@ -105,12 +106,11 @@ class MinimumEstimatedCombinedCost:
                                           p.server_cpu_energy_coefficient)))
         energy_j = require_non_negative_float("estimated_mobile_energy_j", math.fsum(energies))
         admissible = action == 0 or not p.require_cached_contact or service_s <= contact_s
-        cost = criticality * math.fsum((p.latency_weight * service_s / deadline_s,
-            p.energy_weight * energy_j / budget_j, p.mec_weight * (action == 0),
-            p.deadline_penalty * new_miss)) if admissible else math.inf
+        cost = math.fsum((p.latency_weight * service_s / deadline_s,
+            p.energy_weight * energy_j / budget_j, p.mec_weight * (action == 0))) if admissible else math.inf
         if admissible:
             cost = require_non_negative_float("estimated_cost", cost)
-        return EstimatedActionCost(service_s, energy_j, contact_s, new_miss, admissible, cost)
+        return EstimatedActionCost(service_s, energy_j, contact_s, projected_miss, admissible, cost)
 
     def act(self, observation: OffloadingObservation) -> int:
         # MEC is always retained; an all-infinite point projection resolves to

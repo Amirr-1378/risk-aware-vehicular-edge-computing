@@ -41,6 +41,8 @@ def masked_cost_actions(atoms: Tensor, masks: Tensor, *, alpha: float = .9,
     # Remove masked NaN/Inf before computing scores, not just after reduction.
     safe = atoms.masked_fill(~masks.unsqueeze(-1), 0.)
     scores = cost_scores(safe, alpha=alpha, risk_weight=risk_weight)
+    if not bool(torch.isfinite(scores[masks]).all()):
+        raise ValueError("valid action risk scores must be finite")
     return scores.masked_fill(~masks, float("inf")).argmin(dim=1)
 
 

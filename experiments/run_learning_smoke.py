@@ -10,6 +10,7 @@ from risk_aware_v2x.agents import DecisionAdapter, FeatureScales, ObservationEnc
 from risk_aware_v2x.agents.neural import ALGORITHMS, AgentConfig, NeuralCostAgent, encoder_signature
 from risk_aware_v2x.agents.schedules import EpsilonSchedule
 from risk_aware_v2x.entities._validation import require_non_negative_int
+from risk_aware_v2x.contracts import model_contract
 from .run_environment_smoke import _json_value, build_smoke_scenario
 from .provenance import source_provenance
 from .learning_runtime import deterministic_cpu, run_episode, runtime_metadata
@@ -37,7 +38,8 @@ def run_learning_smoke(*, algorithm: str = "qr_dqn_cvar", episodes: int = 4,
     scenario_hash = hashlib.sha256(json.dumps(scenario, sort_keys=True, default=_json_value,
                                               allow_nan=False).encode("utf-8")).hexdigest()
     evaluation_seeds = (1_000_007, 1_000_008)
-    contract = {"run_kind": "synthetic-learning-smoke-v1", "configuration": configuration,
+    contract = {"run_kind": "synthetic-learning-smoke-v2", "model_contract": model_contract(),
+                "configuration": configuration,
                 "scenario_sha256": scenario_hash, "environment_seed_base": environment_seed,
                 "epsilon_schedule": asdict(schedule), "updates_per_new_transition": 1,
                 "warmup_counting": "total-transitions",
@@ -85,7 +87,8 @@ def run_learning_smoke(*, algorithm: str = "qr_dqn_cvar", episodes: int = 4,
                 raise RuntimeError("evaluation mutated the exploration schedule")
             evaluations.append(report)
         return {
-            "report_schema_version": 1, "purpose": "synthetic neural training audit; not a paper benchmark",
+            "report_schema_version": 2, "model_contract": model_contract(),
+            "purpose": "synthetic neural training audit; not a paper benchmark",
             "algorithm": algorithm, "agent_seed": agent_seed, "environment_seed_base": environment_seed,
             "agent_configuration": asdict(config), "encoder": encoder_signature(encoder),
             "configuration": configuration, "scenario": scenario, "scenario_sha256": scenario_hash,

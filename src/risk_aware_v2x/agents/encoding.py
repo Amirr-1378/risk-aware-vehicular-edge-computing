@@ -7,7 +7,7 @@ from ..entities import QueryStatus
 from ..entities._validation import require_finite_float, require_non_negative_int, require_positive_float
 from ..environment.observations import RAW_OBSERVATION_SCHEMA_VERSION, OffloadingObservation, observed_valid_actions
 
-ENCODED_OBSERVATION_SCHEMA_VERSION = 2
+ENCODED_OBSERVATION_SCHEMA_VERSION = 3
 
 
 @dataclass(frozen=True, slots=True)
@@ -47,7 +47,7 @@ class EncodedObservation:
 
 
 class ObservationEncoder:
-    """Raw schema v2 -> vector schema v2. No running statistics or simulator access.
+    """Label-free raw schema v3 -> vector v3. No fitted statistics or truth access.
 
     No clipping: negative deadline slack and unusually large workloads remain
     distinguishable. Non-finite inputs/results are errors. Absent server blocks
@@ -62,7 +62,6 @@ class ObservationEncoder:
     _global_names = (
         "task.input", "task.output", "task.required_cycles", "task.remaining_cycles",
         "task.deadline", "task.deadline_slack", "task.energy_budget", "task.elapsed_deadline_fraction",
-        "task.criticality_normal", "task.criticality_high", "task.criticality_critical",
         "user.battery_fraction", "user.speed", "user.heading_sin", "user.heading_cos",
         "user.distance_to_mec", "user.tx_power_fraction", "user.unassigned_count",
         "user.unassigned_cycles", "cache.snapshot_age", "cache.response_age",
@@ -99,8 +98,6 @@ class ObservationEncoder:
         if len(observation.servers) != self.max_server_vehicles:
             raise ValueError("observation server capacity differs from encoder")
         observed_valid_actions(observation)
-        if observation.criticality_weight not in (1, 2, 4):
-            raise ValueError("unsupported task criticality")
         if observation.query_status not in self._query_order:
             raise ValueError("unknown query status")
         s, o, m = self.scales, observation, observation.mec
@@ -111,7 +108,7 @@ class ObservationEncoder:
             o.required_cpu_cycles / s.cpu_cycles, o.remaining_cpu_cycles / s.cpu_cycles,
             require_positive_float("deadline_s", o.deadline_s) / s.time_s,
             o.deadline_slack_s / s.time_s, o.energy_budget_j / s.energy_j,
-            o.elapsed_deadline_fraction, *(float(o.criticality_weight == level) for level in (1, 2, 4)),
+            o.elapsed_deadline_fraction,
             o.user_battery_fraction, o.user_speed_mps / s.speed_mps,
             math.sin(heading), math.cos(heading), o.distance_to_mec_m / s.distance_m,
             o.tx_power_fraction, o.unassigned_task_count / s.task_count,

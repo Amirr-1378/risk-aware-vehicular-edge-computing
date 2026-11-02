@@ -53,3 +53,9 @@ class DevelopmentProtocolTests(unittest.TestCase):
         with patch("pathlib.Path.read_text", return_value='{"schema_version":1,"schema_version":2}'):
             with self.assertRaises(ValueError):
                 DevelopmentProtocol.load("fixture.json")
+
+    def test_legacy_scenario_plan_is_not_silently_given_the_new_objective(self):
+        with self.assertRaisesRegex(ValueError, "v2"):
+            DevelopmentProtocol.load(DEFAULT_PROTOCOL.with_name("development_v1.json"))
+        self.assertEqual(self.plan.cost_model_version, 2)
+        self.assertEqual(self.plan.schema_version, 2)

@@ -1,13 +1,14 @@
 """Versioned fixed-policy suite and public static hardware assumptions."""
 
 from dataclasses import asdict
+from risk_aware_v2x.contracts import model_contract
 
 from risk_aware_v2x.baselines import (
     AlwaysMEC, AlwaysV2V, GreedyCostParameters, MinimumEstimatedCombinedCost,
     MinimumEstimatedLatency, UniformRandom,
 )
 
-BASELINE_SUITE_VERSION = 2
+BASELINE_SUITE_VERSION = 3
 
 
 def comparison_policies(config, users, servers, *, seed: int) -> tuple[dict, dict]:
@@ -30,7 +31,7 @@ def comparison_policies(config, users, servers, *, seed: int) -> tuple[dict, dic
 
     parameters = GreedyCostParameters(
         latency_weight=config.latency_weight, energy_weight=config.energy_weight,
-        mec_weight=config.mec_weight, deadline_penalty=config.deadline_penalty,
+        mec_weight=config.mec_weight,
         user_max_tx_power_w=common(users, "max_tx_power_w"),
         user_rx_power_w=common(users, "rx_power_w"),
         server_tx_power_w=common(servers, "max_tx_power_w"),
@@ -45,6 +46,7 @@ def comparison_policies(config, users, servers, *, seed: int) -> tuple[dict, dic
         "minimum_estimated_combined_cost": MinimumEstimatedCombinedCost(parameters),
     }, {
         "baseline_suite_version": BASELINE_SUITE_VERSION,
+        "model_contract": model_contract(),
         "minimum_estimated_combined_cost": asdict(parameters),
         "information": "received snapshot and own task/user state plus public static hardware/objective constants",
         "tie_break": "smallest observation action index; MEC=0",

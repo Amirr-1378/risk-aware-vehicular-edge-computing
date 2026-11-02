@@ -6,9 +6,8 @@ import random
 import unittest
 from dataclasses import asdict, replace
 
-from risk_aware_v2x.entities import Criticality
 from risk_aware_v2x.models.mobility import MotionState, advance_straight_line
-from risk_aware_v2x.scenarios import ScenarioSpec, TaskClassSpec, generate_scenario
+from risk_aware_v2x.scenarios import ScenarioSpec, TaskDeadlineSpec, generate_scenario
 from risk_aware_v2x.scenarios.generator import arrival_probability
 
 
@@ -71,14 +70,14 @@ class StochasticScenarioTests(unittest.TestCase):
             expected_travel = user.speed_mps ** 2 / (-2 * user.acceleration_mps2)
             self.assertAlmostEqual(math.dist(user.position_m, final.position_m), expected_travel)
 
-    def test_server_count_and_task_classes_do_not_change_other_rng_streams(self):
+    def test_server_count_and_deadline_profiles_do_not_change_other_rng_streams(self):
         base = ScenarioSpec()
         first = generate_scenario(base, seed=11)
         second = generate_scenario(replace(base, num_servers=1), seed=11)
         self.assertEqual(first.users, second.users)
         self.assertEqual(first.tasks, second.tasks)
         self.assertEqual(first.configuration.max_server_vehicles, second.configuration.max_server_vehicles)
-        only_normal = replace(base, task_classes=(TaskClassSpec(Criticality.NORMAL, 1., .6, .1),))
+        only_normal = replace(base, deadline_profiles=(TaskDeadlineSpec(1., .6, .1),))
         third = generate_scenario(only_normal, seed=11)
         self.assertEqual([(task.arrival_slot, task.input_size_bits, task.required_cpu_cycles) for task in first.tasks],
                          [(task.arrival_slot, task.input_size_bits, task.required_cpu_cycles) for task in third.tasks])
@@ -136,11 +135,11 @@ class StochasticScenarioTests(unittest.TestCase):
 
     def test_specification_json_round_trip_and_invalid_envelopes(self):
         self.assertEqual(ScenarioSpec(), ScenarioSpec.from_dict(json.loads(json.dumps(asdict(ScenarioSpec())))))
-        for changes in ({"schema_version": 2}, {"calibration_status": "calibrated"},
+        for changes in ({"schema_version": 1}, {"calibration_status": "calibrated"},
                         {"user_braking_magnitude_mps2": (0., 1.)}, {"mec_coverage_radius_m": 50.},
                         {"mec_background_fraction": 1.}, {"server_self_cpu_fraction": (.9, .96)},
                         {"input_size_bits": (4, 1)}, {"user_speed_mps": (float("nan"), 2.)},
-                        {"task_classes": (TaskClassSpec(Criticality.NORMAL, .5, 1., 1.),)},
+                        {"deadline_profiles": (TaskDeadlineSpec(.5, 1., 1.),)},
                         {"num_servers": True}, {"arrival_rate_per_user_hz": 101.}):
             with self.subTest(changes=changes), self.assertRaises((TypeError, ValueError)):
                 replace(ScenarioSpec(), **changes)

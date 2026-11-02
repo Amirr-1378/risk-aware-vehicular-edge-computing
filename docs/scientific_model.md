@@ -15,6 +15,10 @@ See [`physical_models.md`](physical_models.md) for implementation conventions.
 See [`simulation_environment.md`](simulation_environment.md) for the first
 kernel's explicit service assumptions and causal energy-envelope bounds.
 
+The approved 2026-11-02 cost/control revision is defined authoritatively in
+[`objective_and_preferences.md`](objective_and_preferences.md): cost model 2,
+label-free EDF, upper-cost CVaR, sigmoid preference only, and discrete argmin.
+
 This document defines the scientific assumptions, units, entities, and physical
 models for the independent risk-aware vehicular edge-computing implementation.
 It is the source of truth for scientific formulas. The companion
@@ -29,7 +33,8 @@ The system offloads each indivisible computation task to exactly one of:
 2. one of several mobile server vehicles.
 
 There is no local-execution action. The MEC is always available and is the
-eventual fallback executor, so every admitted task completes. The learning
+eventual fallback executor under the stated service/energy/domain assumptions.
+Its presence does not guarantee a deadline or universal failure-free service. The learning
 objective is to increase the workload completed by server vehicles, thereby
 reducing MEC load, without sacrificing deadline performance, mobile energy,
 or upper-tail risk.
@@ -53,7 +58,7 @@ independent comparison policy.
 | Final task failure | Not allowed; tasks complete either on time or late |
 | Hardware faults | Not modeled in the primary study |
 | Time model | Time-slotted; nominal slot duration is 10 ms |
-| Queue discipline | Criticality-aware, preemptive earliest-deadline-first at slot boundaries |
+| Queue discipline | Label-free preemptive EDF at slot boundaries |
 | Information | MEC metadata is queried, cached, timestamped, and subject to a lifetime |
 | Nominal metadata lifetime | 100 ms |
 | MEC energy | Excluded from the primary objective |
@@ -141,7 +146,6 @@ runtime-state records, but the following concepts must remain explicit.
 | `output_size_bits` | `int` | bit | Non-negative |
 | `cpu_cycles_per_bit` | `float` | cycle/bit | Positive and finite |
 | `deadline_s` | `float` | s | Positive and finite |
-| `criticality` | enum | none | `NORMAL`, `HIGH`, or `CRITICAL` |
 | `energy_budget_j` | `float` | J | Positive normalization scale |
 
 The required computation is derived, not independently configured:
@@ -430,10 +434,11 @@ realization; they are not sampled as independent features.
 
 Scheduling is lexicographic by
 
-1. criticality (`CRITICAL`, `HIGH`, `NORMAL`);
-2. earliest absolute deadline;
-3. earliest arrival slot; and
-4. task identifier as a deterministic final tie-breaker.
+1. earliest absolute deadline;
+2. earliest arrival slot; and
+3. task identifier as a deterministic final tie-breaker.
+
+No manual task class or priority label is used in this ordering.
 
 Execution may be preempted only at slot boundaries. Preemption preserves
 remaining CPU cycles and does not change the selected executor. This is
@@ -541,10 +546,9 @@ Partial upload, computation, or result data from the interrupted V2V attempt
 is discarded. The MEC re-executes the complete task. The physical time and
 mobile energy already consumed are retained in cost accounting.
 
-No arbitrary fallback penalty is used in the primary model. Wasted time,
-wasted energy, eventual MEC usage, and any deadline miss provide the learning
-signal. A separate fallback-penalty experiment may be added only as an
-explicit ablation.
+No arbitrary fallback or deadline penalty is used. Wasted time, wasted energy,
+and eventual MEC usage provide the learning signal through the three actual
+cost components. Deadline misses/tardiness remain metrics only.
 
 ## 12. Combined cost and risk
 
@@ -557,26 +561,20 @@ For task \(i\), define normalized latency and mobile energy
 \]
 
 Let \(M_i=1\) when the MEC ultimately executes the task, including fallback,
-and zero when a server vehicle completes it. Let criticality weight be 1, 2,
-or 4 for normal, high, or critical tasks. The primary task cost is
+and zero when a server vehicle completes it. The primary task cost is
 
 \[
-z_i=w_i^{\mathrm{criticality}}
-\left[
+z_i=
 0.60\widetilde T_i
 +0.25\widetilde E_i
 +0.15M_i
-+2\,\mathbf 1(T_i>D_i)
-\right].
+.
 \]
 
-Weights are fixed before test-set evaluation and shared by every policy. The
-pre-registered sensitivity grid is
-
-- MEC-use weight: 0.00, 0.10, 0.15, 0.20;
-- latency/energy alternatives: 0.50/0.50, 0.70/0.30, 0.90/0.10 when the
-  MEC-use term is disabled or reported as a separate experiment;
-- deadline penalty: 1, 2, 4.
+These three objective coefficients are fixed/shared in cost model v2. There
+is no manual task multiplier, deadline surcharge, clipping or replacement
+penalty. T_i/D_i can exceed one. Deadline misses/tardiness remain evaluation
+metrics. Older sensitivity/penalty proposals are superseded, not active plans.
 
 For cumulative discounted cost \(G_t^c\), upper-tail CVaR at confidence
 \(\alpha=0.9\) is
@@ -599,6 +597,12 @@ with nominal \(\lambda_r=0.5\). The controller minimizes \(J\). The risk
 sensitivity grid is 0, 0.25, 0.5, 0.75, and 1. A value of zero is the
 risk-neutral QR-DQN ablation.
 
+For each observed-valid SV, report sigmoid(beta*(J_SV-J_MEC)), beta>0,
+default beta=1. This is a smooth preference score, not an action probability
+or modified task cost. The final destination remains masked argmin J with
+smallest-index tie breaking, independent of beta. Full definitions and
+numerical/semantic caveats are in the reference contract above.
+
 This specifies a conditional action score, not a proof of global optimality
 for a static episode-level CVaR objective. An ordinary distributional Bellman
 backup with a risk-distorted greedy policy must not be claimed to solve static
@@ -618,7 +622,7 @@ Primary metrics are
 - MEC-fallback task ratio;
 - V2V interruption ratio;
 - on-time completion ratio;
-- critical-task deadline-miss ratio;
+- deadline-miss fraction and total/mean/max tardiness;
 - mean, p95, and p99 latency;
 - mean mobile energy;
 - mean cost and empirical CVaR at confidence 0.9;
@@ -660,8 +664,10 @@ action space differs from this project's MEC/multi-V2V action space.
 - semantic-content inference or a semantic classifier;
 - advanced localization, triangulation, or multi-MEC handover.
 
-Task labels are called **criticality**, not semantic awareness, unless a real
-semantic inference component is added later.
+There are no manual criticality/priority labels in the active task model,
+queues, observation, reward, or controller. Real deadline/workload features
+can encode time sensitivity; neither the feed-forward policy nor its sigmoid
+has an implemented semantic detector for emergencies or obstacles.
 
 ## 16. Required scientific tests
 
@@ -676,7 +682,7 @@ Every formula and state-changing rule above requires a deterministic test.
 | Distance estimate | Exact inversion without noise; bounded/noisy behavior with shadowing |
 | Query | Request/processing/response latency; energy sum; response-size scaling |
 | Cache | Fresh-at-boundary, expired-after-boundary, one in-flight query |
-| Queue | Criticality order, EDF order, deterministic tie breaking, preemption |
+| Queue | Pure EDF order, deterministic tie breaking, preemption without work loss |
 | Latency | Upload, queue, compute, download, query, and fallback components |
 | Energy | User query/radio and server receive/CPU/transmit components |
 | Fallback | V2V work discarded; full MEC workload restored; prior cost retained |

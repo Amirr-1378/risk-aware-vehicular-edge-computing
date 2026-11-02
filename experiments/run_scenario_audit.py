@@ -16,8 +16,9 @@ from risk_aware_v2x.scenarios import generate_scenario
 from risk_aware_v2x.scenarios.protocol import DevelopmentProtocol
 from .provenance import source_provenance
 from .comparison_policies import comparison_policies
+from risk_aware_v2x.contracts import model_contract
 
-DEFAULT_PROTOCOL = Path(__file__).resolve().parent / "configs" / "development_v1.json"
+DEFAULT_PROTOCOL = Path(__file__).resolve().parent / "configs" / "development_v2.json"
 
 
 def save_audit_report(report: dict, path: str | Path) -> None:
@@ -93,7 +94,8 @@ def run_scenario_audit(*, protocol: DevelopmentProtocol | None = None, profile: 
                 resamples=plan.bootstrap_resamples, confidence=plan.bootstrap_confidence,
             ))
     return {
-        "report_schema_version": 2, "purpose": "stochastic development audit; no calibrated performance claim",
+        "report_schema_version": 3, "model_contract": model_contract(),
+        "purpose": "stochastic development audit; no calibrated performance claim",
         "policy_configuration": policy_configuration,
         "protocol": asdict(plan), "protocol_sha256": plan.fingerprint,
         "profile": profile, "split": split, "cases": cases,

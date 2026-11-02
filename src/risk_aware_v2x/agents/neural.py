@@ -20,10 +20,12 @@ from ..entities._validation import (
     require_fraction, require_non_negative_int, require_positive_float, require_positive_int,
 )
 from ..models.randomness import RandomStreams
+from ..contracts import COST_MODEL_VERSION, model_contract
+from ..risk.preferences import sigmoid_mec_preference
 from .encoding import EncodedObservation, ObservationEncoder
 from .replay import ReplayBuffer, validate_observation, validate_transition
 from .transitions import DecisionTransition
-from .updates import bootstrap_cost_targets, masked_cost_actions, quantile_huber_loss
+from .updates import bootstrap_cost_targets, cost_scores, masked_cost_actions, quantile_huber_loss
 
 ALGORITHMS = ("dqn", "double_dqn", "qr_dqn", "qr_dqn_cvar")
 
@@ -43,6 +45,7 @@ class AgentConfig:
     gamma_per_slot: float = 1.
     alpha: float = .9
     risk_weight: float = .5
+    sigmoid_beta: float = 1.
 
     def __post_init__(self):
         if self.algorithm not in ALGORITHMS:
@@ -55,7 +58,7 @@ class AgentConfig:
             require_positive_int(name, getattr(self, name))
         if self.replay_capacity < max(self.batch_size, self.learning_starts):
             raise ValueError("replay must accommodate batch size and learning warm-up")
-        for name in ("learning_rate", "huber_kappa", "max_grad_norm"):
+        for name in ("learning_rate", "huber_kappa", "max_grad_norm", "sigmoid_beta"):
             object.__setattr__(self, name, require_positive_float(name, getattr(self, name)))
         for name in ("gamma_per_slot", "alpha", "risk_weight"):
             object.__setattr__(self, name, require_fraction(name, getattr(self, name)))
@@ -163,6 +166,41 @@ class NeuralCostAgent:
         if not math.isclose(transition.bootstrap_discount, expected, rel_tol=1e-12, abs_tol=1e-15):
             raise ValueError("transition slot discount differs from agent configuration")
 
+    @torch.no_grad()
+    def preference_diagnostics(self, observation: EncodedObservation) -> dict:
+        """Read-only learned J and per-valid-SV sigmoid preference, not a policy.
+
+        Uses exactly the behavior selector's score/mask/ties. No true simulator
+        state, RNG, replay insertion or gradient step is consulted. act() and
+        targets() deliberately do not read beta or these preference scores.
+        """
+        self._validate_input(observation)
+        atoms = self.online(torch.tensor([observation.values], dtype=torch.float32))
+        masks = torch.tensor([observation.action_mask], dtype=torch.bool)
+        selected = int(masked_cost_actions(atoms, masks, alpha=self.config.alpha,
+                                           risk_weight=self.config.effective_risk_weight)[0])
+        safe = atoms.masked_fill(~masks.unsqueeze(-1), 0.)
+        means = cost_scores(safe, alpha=self.config.alpha, risk_weight=0.)[0]
+        tails = cost_scores(safe, alpha=self.config.alpha, risk_weight=1.)[0]
+        scores = cost_scores(safe, alpha=self.config.alpha, risk_weight=self.config.effective_risk_weight)[0]
+        if not bool(torch.isfinite(scores[masks[0]]).all()):
+            raise ValueError("non-finite learned risk score")
+        mec_score = float(scores[0])
+        records = []
+        for action, valid in enumerate(observation.action_mask):
+            if not valid:
+                continue
+            score = float(scores[action])
+            delta = None if action == 0 else score - mec_score
+            records.append({"action": action, "mean_cost": float(means[action]),
+                "upper_cvar_cost": float(tails[action]), "risk_cost": score,
+                "delta_vs_mec": delta,
+                "mec_preference_score": None if action == 0 else sigmoid_mec_preference(delta, beta=self.config.sigmoid_beta)})
+        return {"selected_action": selected, "alpha": self.config.alpha,
+                "effective_risk_weight": self.config.effective_risk_weight,
+                "sigmoid_beta": self.config.sigmoid_beta, "valid_actions": records,
+                "interpretation": "MEC preference score; NOT an action probability"}
+
     def observe(self, transition: DecisionTransition):
         self._validate_sample(transition)
         self.replay.append(transition)
@@ -222,7 +260,8 @@ class NeuralCostAgent:
         if run_metadata is not None and not isinstance(run_metadata, dict):
             raise TypeError("run_metadata must be a JSON-compatible dictionary")
         payload = {
-            "checkpoint_schema_version": 1, "torch_version": str(torch.__version__),
+            "checkpoint_schema_version": 2, "cost_model_version": COST_MODEL_VERSION,
+            "model_contract": model_contract(), "torch_version": str(torch.__version__),
             "python_version": platform.python_version(), "config": asdict(self.config),
             "encoder": self.signature, "seed": self.seed,
             "online": self.online.state_dict(), "target": self.target.state_dict(),
@@ -240,8 +279,12 @@ class NeuralCostAgent:
     def load_checkpoint(cls, path: str | Path, encoder: ObservationEncoder):
         """Load only a trusted local checkpoint; restricted tensor/primitive loader."""
         state = torch.load(path, map_location="cpu", weights_only=True)
-        if state["checkpoint_schema_version"] != 1 or state["encoder"] != encoder_signature(encoder):
-            raise ValueError("checkpoint schema or encoder configuration mismatch")
+        if (state.get("checkpoint_schema_version") != 2
+                or type(state.get("cost_model_version")) is not int
+                or state.get("cost_model_version") != COST_MODEL_VERSION
+                or state.get("model_contract") != model_contract()
+                or state["encoder"] != encoder_signature(encoder)):
+            raise ValueError("checkpoint cost model/schema or encoder mismatch; historical objectives cannot be resumed")
         if state["torch_version"] != str(torch.__version__):
             raise ValueError("exact PyTorch version required for reproducible training resume")
         config = dict(state["config"])

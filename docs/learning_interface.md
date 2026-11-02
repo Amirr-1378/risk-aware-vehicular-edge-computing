@@ -7,28 +7,31 @@ establishes an algorithmic improvement. This supplies an auditable interface to
 the simulator described in
 [`simulation_environment.md`](simulation_environment.md).
 
-## Received information and vector schema v2
+Current cost/control definitions are in
+[objective_and_preferences.md](objective_and_preferences.md).
+
+## Received information and vector schema v3
 
 `ObservationEncoder(max_server_vehicles=M, scales=FeatureScales(...))` consumes
-only immutable raw schema-v2 `OffloadingObservation` records. It never reads
+only immutable raw schema-v3 `OffloadingObservation` records. It never reads
 the simulator, live server queues, or future arrivals/channels. Baselines
 consume those same raw records; neural policies will consume their encoding.
 Neither representation gives an oracle feasibility mask.
 
-The vector has `39 + 15*M` dimensionless entries in the order exposed by
+The vector has `36 + 15*M` dimensionless entries in the order exposed by
 `encoder.feature_names`:
 
-- 33 task, own-user, cache-age, and cached-MEC features;
+- 30 task, own-user, cache-age, and cached-MEC features;
 - six query-status one-hot entries, in explicit versioned order;
 - 15 features per cached server slot, including presence and record age.
 
-Version 2 adds the own task's original relative deadline as `task.deadline`,
-in addition to remaining slack and elapsed fraction. This avoids an undefined
-reconstruction at exactly zero slack. Both baseline and neural inputs receive
-it; v1 encoders/checkpoints are not silently reused. See
-[combined_cost_baseline.md](combined_cost_baseline.md) for the migration contract.
+Version 3 retains the own task's original relative deadline as `task.deadline`,
+in addition to remaining slack and elapsed fraction, but removes all three
+manual criticality one-hots and the corresponding raw field. Both baseline
+and neural inputs are label-free; v1/v2 encoders/checkpoints are not reused.
+The original deadline avoids undefined reconstruction at zero slack.
 
-Criticality uses three one-hot entries for weights 1/2/4. Heading uses sin/cos,
+There is no manual priority/criticality input. Heading uses sin/cos,
 not a discontinuous raw angle. Absolute timestamps and task/user/server IDs
 are excluded from network values. User/task IDs in `EncodedObservation` are
 diagnostic labels, not neural inputs. Servers retain the raw observation's
@@ -222,3 +225,10 @@ and the stated risk-distorted controller are now implemented and numerically
 tested; see [`neural_agents.md`](neural_agents.md). Next freeze training/
 evaluation protocols, independent seeds, calibrated
 scenario ranges, confidence intervals, and ablations before performance claims.
+
+The exact three-term actual cost and pure EDF are independent of sigmoid
+diagnostics. Sigmoid(beta*(J_SV-J_MEC)) is a single smooth MEC preference
+curve per valid server, not a selection probability, replay cost, reward,
+quantile-loss transformation or substitute TD target. Evaluation still uses
+masked argmin J and seeded training exploration is unchanged. The default
+lambda=.5 is preserved; beta=1 is a positive display-only default.

@@ -20,7 +20,7 @@ def neural_fixture(algorithm="dqn", **changes):
                             "batch_size": 2, "learning_starts": 2, "replay_capacity": 64,
                             "target_update_interval": 2, "gamma_per_slot": .9, **changes})
     agent = NeuralCostAgent(config, encoder, seed=8)
-    observation = EncodedObservation(2, (1.,) + (0.,) * (encoder.dimension - 1),
+    observation = EncodedObservation(3, (1.,) + (0.,) * (encoder.dimension - 1),
                                      (True, True, False), 1, 1)
     transition = DecisionTransition(observation, 0, 0, 2, 3., 2.9, .81,
                                     replace(observation, task_id=2), False)
@@ -229,6 +229,19 @@ class NeuralAgentTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, "encoder"):
                 NeuralCostAgent.load_checkpoint(legacy, encoder)
             self.assertEqual(before, legacy.read_bytes())
+
+    def test_cost_version_is_checked_even_with_matching_encoder_and_tensor_dimensions(self):
+        agent, encoder, _ = neural_fixture()
+        with tempfile.TemporaryDirectory() as directory:
+            valid = Path(directory) / "valid.pt"
+            agent.save_checkpoint(valid)
+            for version in (1, 2., None):
+                state = torch.load(valid, weights_only=True)
+                state["cost_model_version"] = version
+                path = Path(directory) / f"incompatible-{version}.pt"
+                torch.save(state, path)
+                with self.assertRaisesRegex(ValueError, "cost model"):
+                    NeuralCostAgent.load_checkpoint(path, encoder)
 
     def test_checkpoint_rejects_invalid_optimizer_parameters_and_nonfinite_state(self):
         agent, encoder, sample = neural_fixture()

@@ -2,18 +2,26 @@
 
 import math
 
-from ..entities import Criticality, ExecutorKind
+from ..entities import ExecutorKind
+from ..contracts import COST_MODEL_VERSION
 from ..risk.tails import empirical_var
 from .simulator import SlottedEnvironment
+from .accounting import final_task_cost
 
 
 def terminal_metrics(environment: SlottedEnvironment) -> dict:
     if not environment.terminated or any(not task.is_terminal for task in environment.tasks.values()):
         raise ValueError("complete drain is required before scientific episode metrics")
     tasks = tuple(environment.tasks.values())
+    for task in tasks:
+        ledger = environment.ledgers[task.task_id]
+        expected = final_task_cost(task, ledger, environment.config)
+        if not math.isclose(expected, ledger.total_cost, rel_tol=1e-12, abs_tol=1e-12):
+            raise RuntimeError("task cost violates the reference three-term objective")
     n = len(tasks)
     work = math.fsum(task.required_cpu_cycles for task in tasks)
-    critical = [task for task in tasks if task.criticality is Criticality.CRITICAL]
+    tardiness = [max(0., task.completion_time_s - task.absolute_deadline_s(environment.config.slot_duration_s))
+                 for task in tasks]
     latency = [environment.ledgers[task.task_id].latency.total_s for task in tasks]
     metrics = environment.metrics()
     starts, query_durations = {}, []
@@ -30,8 +38,11 @@ def terminal_metrics(environment: SlottedEnvironment) -> dict:
         "direct_mec_task_fraction": sum(task.initial_target_kind is ExecutorKind.MEC for task in tasks) / n if n else None,
         "fallback_task_fraction": sum(task.fallback_used for task in tasks) / n if n else None,
         "on_time_task_fraction": sum(not task.deadline_missed for task in tasks) / n if n else None,
-        "critical_task_count": len(critical),
-        "critical_deadline_miss_fraction": sum(task.deadline_missed for task in critical) / len(critical) if critical else None,
+        "cost_model_version": COST_MODEL_VERSION,
+        "deadline_miss_fraction": sum(task.deadline_missed for task in tasks) / n if n else None,
+        "total_task_tardiness_s": math.fsum(tardiness),
+        "mean_task_tardiness_s": math.fsum(tardiness) / n if n else None,
+        "max_task_tardiness_s": max(tardiness) if n else None,
         "mean_task_latency_s": math.fsum(latency) / n if n else None,
         "pooled_task_latency_p95_s": empirical_var(latency, alpha=.95) if latency else None,
         "pooled_task_latency_p99_s": empirical_var(latency, alpha=.99) if latency else None,

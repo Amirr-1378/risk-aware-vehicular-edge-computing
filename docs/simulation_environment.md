@@ -34,7 +34,7 @@ observation records and nested snapshots are frozen.
 
 `env.tasks`, `users`, `server_vehicles`, `mec`, `ledgers`, `wireless`, `events`,
 and `metrics()` are diagnostic simulator state. They must never be passed to
-a deployed policy. The first observation schema is **raw version 1**; absent
+a deployed policy. The current observation schema is **raw version 3**; absent
 server records use `None`. The implemented `ObservationEncoder` normalizes
 features and zero-pads slots without reading diagnostic truth. `DecisionAdapter`
 retains costs between irregular decision times and separately records costs
@@ -48,7 +48,7 @@ links, admits pending MEC fallbacks, completes finished query phases, and
 builds decisions from received, valid snapshots. Link sampling uses stable
 per-link RNG names and never depends on whether a query is requested.
 
-After the action batch, criticality-aware EDF recomputes CPU allocations at
+After the action batch, label-free EDF recomputes CPU allocations at
 each resource. Radio operations and CPU operations are planned from that
 state. Query phases and task operations then consume actual work and energy.
 No task performs more than one upload/compute/download phase in a slot.
@@ -108,7 +108,7 @@ M/M/1 delays or guarantees about future arrivals.
 ## Radio and CPU resource conventions
 
 Each user has one radio operation per slot. An in-flight query reserves that
-user's radio across its phases. Otherwise, the user's criticality-aware EDF
+user's radio across its phases. Otherwise, the user's label-free EDF
 order selects one pending task transfer. Each server vehicle supports one
 half-duplex V2V transfer per slot; contention is resolved by the same ordering.
 Remote CPU execution can overlap other tasks' radio service.
@@ -166,15 +166,18 @@ no task is silently dropped or converted to a terminal failure.
 
 Per-task ledgers keep disjoint latency and mobile-energy buckets. Interrupted
 V2V components move into retained-attempt buckets without being charged again.
-MEC use and the first deadline miss are one-time events. Deadlines do not
+MEC use is a one-time cost event; the first deadline miss is recorded only.
+Deadlines do not
 cancel tasks. A completed task's accumulated cost must equal
 
 \[
-w_i\left[0.60\,T_i/D_i+0.25\,E_i/E_i^{budget}
-+0.15\,1_{MEC}+2\,1_{T_i>D_i}\right]
+0.60\,T_i/D_i+0.25\,E_i/E_i^{budget}+0.15\,1_{MEC}
 \]
 
-under default weights. Summed returned costs must equal summed task costs.
+under the fixed shared cost-model-v2 weights. No multiplier or deadline
+surcharge is used; tardiness/misses remain report-only metrics. Terminal
+reporting reconstructs each task's reference cost from actual physical
+outcomes. Summed returned costs must equal summed task costs.
 Total user/server battery depletion must equal recorded mobile energy.
 MEC energy, server self-workload/leakage energy, and non-query user idle energy
 are excluded in this implementation. Query-processing idle energy is counted

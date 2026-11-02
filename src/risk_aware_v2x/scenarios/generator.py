@@ -12,6 +12,7 @@ from ..environment import EnvironmentConfig, SlottedEnvironment
 from ..models.channel import LogDistanceChannel
 from ..models.randomness import RandomStreams
 from .specification import ScenarioSpec
+from ..contracts import model_contract
 
 
 def canonical_json(data) -> str:
@@ -64,7 +65,7 @@ class GeneratedScenario:
         mean_cycles = (sum(self.specification.input_size_bits) / 2
                        * sum(self.specification.cpu_cycles_per_bit) / 2)
         return json.loads(canonical_json({
-            "schema_version": 1, "scenario_seed": self.scenario_seed,
+            "schema_version": 2, "model_contract": model_contract(), "scenario_seed": self.scenario_seed,
             "specification": asdict(self.specification), "configuration": asdict(self.configuration),
             "users": [initial(user) for user in self.users],
             "servers": [initial(server) for server in self.servers], "mec": initial(self.mec),
@@ -122,15 +123,15 @@ def generate_scenario(spec: ScenarioSpec, *, seed: int) -> GeneratedScenario:
         for slot in slots:
             size = streams.stream(f"task-size:{user_id}:{slot}")
             work = streams.stream(f"task-work:{user_id}:{slot}")
-            selected = streams.stream(f"task-class:{user_id}:{slot}").choices(
-                spec.task_classes, weights=[entry.probability for entry in spec.task_classes], k=1,
+            selected = streams.stream(f"task-deadline:{user_id}:{slot}").choices(
+                spec.deadline_profiles, weights=[entry.probability for entry in spec.deadline_profiles], k=1,
             )[0]
             tasks.append(Task(
                 task_id=user_id * spec.arrival_horizon_slots + slot, owner_vehicle_id=user_id,
                 arrival_slot=slot, input_size_bits=size.randint(*spec.input_size_bits),
                 output_size_bits=size.randint(*spec.output_size_bits),
                 cpu_cycles_per_bit=work.uniform(*spec.cpu_cycles_per_bit),
-                deadline_s=selected.deadline_s, criticality=selected.criticality,
+                deadline_s=selected.deadline_s,
                 energy_budget_j=selected.energy_budget_j,
             ))
     for index in range(spec.num_servers):

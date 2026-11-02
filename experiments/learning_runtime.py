@@ -8,6 +8,7 @@ from importlib.metadata import distributions
 
 import numpy
 import torch
+from risk_aware_v2x.environment.evaluation import terminal_metrics
 
 
 @contextmanager
@@ -54,9 +55,15 @@ def run_episode(adapter, agent, *, environment_seed: int, training: bool,
             epsilon = schedule.value(training_slots) if training else 0.
             actions = {user_id: agent.act(observation, epsilon=epsilon)
                        for user_id, observation in sorted(adapter.observations.items())}
+            preferences = {} if training else {user_id: agent.preference_diagnostics(observation)
+                for user_id, observation in sorted(adapter.observations.items())}
+            if any(preferences[user_id]["selected_action"] != action for user_id, action in actions.items()
+                   if user_id in preferences):
+                raise RuntimeError("greedy selector and preference diagnostic disagree")
             actions_taken.extend({"slot": adapter.environment.slot, "user_vehicle_id": user_id,
                                   "task_id": adapter.observations[user_id].task_id,
-                                  "action": action, "epsilon": epsilon}
+                                  "action": action, "epsilon": epsilon,
+                                  "preference_diagnostics": preferences.get(user_id)}
                                  for user_id, action in actions.items())
             result = adapter.step(actions)
             transition_count += len(result.transitions)
@@ -87,6 +94,6 @@ def run_episode(adapter, agent, *, environment_seed: int, training: bool,
         "environment_seed": environment_seed, "training": training,
         "training_slots_before": slot_start, "training_slots_after": training_slots,
         "elapsed_slots": adapter.environment.slot, "transition_count": transition_count,
-        "updates": losses, "metrics": adapter.environment.metrics(),
+        "updates": losses, "metrics": terminal_metrics(adapter.environment),
         "accounting": accounting, "actions": actions_taken,
     }, training_slots

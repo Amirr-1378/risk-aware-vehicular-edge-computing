@@ -43,7 +43,7 @@ this deterministic smoke scene are not independent stochastic evaluation
 trials. See [`../docs/neural_agents.md`](../docs/neural_agents.md).
 
 `run_scenario_audit.py` evaluates five analytical policies on shared stochastic
-development scenarios from `configs/development_v1.json`. It has no neural
+development scenarios from `configs/development_v2.json`. It has no neural
 dependency. The default split is validation; test access is closed unless
 explicitly enabled. No offered task or difficult episode is silently removed.
 
@@ -59,12 +59,12 @@ are not learned-policy, standards-compliance, or final paper evidence. See
 [`../docs/development_protocol.md`](../docs/development_protocol.md).
 
 `run_learning_audit.py` connects the stochastic plan to 4 neural algorithms x
-2 agent seeds. The explicit `configs/learning_pilot_v2.json` fixes 4 nominal
+2 agent seeds. The explicit `configs/learning_pilot_v3.json` fixes 4 nominal
 training episodes, final-model-only selection, and 2 validation cases in each
 profile. It never constructs/evaluates the test split. Install `learning` first:
 
 ```text
-python -m experiments.run_learning_audit --output-dir reports/learning-pilot-v2
+python -m experiments.run_learning_audit --output-dir reports/learning-pilot-v3
 ```
 
 Choose an unused output directory; reports/checkpoints are never overwritten.
@@ -75,9 +75,17 @@ loop is shared with the old smoke runner in `learning_runtime.py`. See
 [`../docs/learning_development_protocol.md`](../docs/learning_development_protocol.md)
 for exact budgets, pairing, artifacts, and methodological limitations.
 
-`comparison_policies.py` centralizes fixed-policy suite v2, including the new
+`comparison_policies.py` centralizes fixed-policy suite v3, including
 `MinimumEstimatedCombinedCost`. It validates homogeneous static radio/kappa
 constants and records matching environment weights. Raw/encoded observations
-are version 2 with the original task deadline exposed to all policies. Old
-v1 learning configuration/checkpoints remain on disk but are rejected by the
+are version 3, retaining the deadline but removing manual label inputs. Shared
+cost model 2 has exactly three terms and no independent deadline penalty;
+misses/tardiness remain metrics. Old
+v1/v2 learning configurations/checkpoints remain on disk but are rejected by the
 current contract. See [`../docs/combined_cost_baseline.md`](../docs/combined_cost_baseline.md).
+
+The canonical control contract is
+[`../docs/objective_and_preferences.md`](../docs/objective_and_preferences.md).
+QR-CVaR keeps lambda=.5; positive `sigmoid_beta=1` only controls the reported
+MEC preference curve. Evaluation still chooses masked argmin J, never samples
+from sigmoid values, and never transforms actual costs/TD targets with them.

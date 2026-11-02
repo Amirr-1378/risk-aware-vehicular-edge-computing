@@ -19,8 +19,9 @@ from .learning_protocol import LearningProtocol
 from .learning_runtime import deterministic_cpu, run_episode, runtime_metadata
 from .provenance import source_provenance
 from .run_scenario_audit import DEFAULT_PROTOCOL, run_scenario_audit, save_audit_report
+from risk_aware_v2x.contracts import model_contract
 
-DEFAULT_LEARNING_PROTOCOL = Path(__file__).resolve().parent / "configs" / "learning_pilot_v2.json"
+DEFAULT_LEARNING_PROTOCOL = Path(__file__).resolve().parent / "configs" / "learning_pilot_v3.json"
 
 
 def model_fingerprint(agent: NeuralCostAgent) -> str:
@@ -134,7 +135,8 @@ def run_learning_audit(*, learning: LearningProtocol | None = None,
                 checkpoint = f"checkpoints/{algorithm}-seed-{seed}-final.pt"
                 if output is not None:
                     agent.save_checkpoint(output / checkpoint, run_metadata={
-                        "run_kind": "stochastic-learning-audit-v2",
+                        "run_kind": "stochastic-learning-audit-v3", "model_contract": model_contract(),
+                        "cost_model_version": learning.cost_model_version,
                         "raw_observation_schema_version": learning.raw_observation_schema_version,
                         "encoder_schema_version": learning.encoder_schema_version,
                         "baseline_suite_version": learning.baseline_suite_version,
@@ -177,7 +179,8 @@ def run_learning_audit(*, learning: LearningProtocol | None = None,
         if [item["fingerprint"] for item in audit["scenarios"]] != [scene.fingerprint for scene in validation_scenes[profile]]:
             raise RuntimeError("analytical and learned policies used different validation scenes")
     report = {
-        "report_schema_version": 2, "purpose": "synthetic multi-seed learning audit; not a paper benchmark",
+        "report_schema_version": 3, "model_contract": model_contract(),
+        "purpose": "synthetic multi-seed learning audit; not a paper benchmark",
         "learning_protocol": asdict(learning), "learning_protocol_sha256": learning.fingerprint,
         "scenario_protocol": asdict(scenarios), "scenario_protocol_sha256": scenarios.fingerprint,
         "provenance": provenance, "runtime": runtime, "encoder": encoder_signature(encoder),

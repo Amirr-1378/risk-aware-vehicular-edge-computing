@@ -6,7 +6,6 @@ import math
 import unittest
 
 from risk_aware_v2x.entities import (
-    Criticality,
     ExecutorKind,
     Task,
     TaskStatus,
@@ -22,7 +21,6 @@ def make_task(**overrides: object) -> Task:
         "output_size_bits": 100,
         "cpu_cycles_per_bit": 500.0,
         "deadline_s": 0.05,
-        "criticality": Criticality.HIGH,
         "energy_budget_j": 2.0,
     }
     values.update(overrides)
@@ -107,11 +105,9 @@ class TaskEntityTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             task.assign_target(ExecutorKind.SERVER_VEHICLE, 2)
 
-    def test_scheduling_key_is_criticality_aware_edf(self) -> None:
-        normal = make_task(task_id=1, criticality=Criticality.NORMAL, deadline_s=0.01)
-        critical = make_task(
-            task_id=2, criticality=Criticality.CRITICAL, deadline_s=1.0
-        )
+    def test_scheduling_key_is_label_free_edf(self) -> None:
+        normal = make_task(task_id=1, deadline_s=0.01)
+        critical = make_task(task_id=2, deadline_s=1.0)
         earlier_high = make_task(task_id=3, deadline_s=0.1)
         later_high = make_task(task_id=4, deadline_s=0.2)
 
@@ -119,7 +115,8 @@ class TaskEntityTests(unittest.TestCase):
             [normal, later_high, critical, earlier_high],
             key=lambda item: item.scheduling_key(0.01),
         )
-        self.assertEqual([task.task_id for task in ordered], [2, 3, 4, 1])
+        self.assertEqual([task.task_id for task in ordered], [1, 3, 4, 2])
+        self.assertFalse(hasattr(normal, "criticality"))
 
 
 if __name__ == "__main__":

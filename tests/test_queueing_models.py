@@ -3,7 +3,7 @@
 import unittest
 
 from risk_aware_v2x.entities import (
-    Criticality, ExecutorKind, MECServer, ServerVehicle, Task, TaskStatus,
+    ExecutorKind, MECServer, ServerVehicle, Task, TaskStatus,
 )
 from risk_aware_v2x.models.latency import progress_work
 from risk_aware_v2x.models.queueing import (
@@ -13,13 +13,13 @@ from risk_aware_v2x.models.queueing import (
 
 
 def queued_task(
-    task_id: int, *, criticality: Criticality = Criticality.NORMAL,
+    task_id: int, *,
     deadline_s: float = 1.0, arrival_slot: int = 0, v2v: bool = False,
 ) -> Task:
     task = Task(
         task_id=task_id, owner_vehicle_id=1, arrival_slot=arrival_slot,
         input_size_bits=10, output_size_bits=1, cpu_cycles_per_bit=10.0,
-        deadline_s=deadline_s, criticality=criticality, energy_budget_j=1.0,
+        deadline_s=deadline_s, energy_budget_j=1.0,
     )
     task.transition_to(TaskStatus.READY_FOR_OFFLOADING)
     task.assign_target(ExecutorKind.SERVER_VEHICLE if v2v else ExecutorKind.MEC, 9 if v2v else 0)
@@ -50,10 +50,10 @@ def server_resource() -> ServerVehicle:
 
 
 class QueueingModelTests(unittest.TestCase):
-    def test_criticality_precedes_deadline(self) -> None:
+    def test_earliest_deadline_is_the_only_urgency_key(self) -> None:
         normal = queued_task(1, deadline_s=0.001)
-        critical = queued_task(2, criticality=Criticality.CRITICAL, deadline_s=10.0)
-        self.assertEqual([task.task_id for task in ordered_tasks([normal, critical], 0.01)], [2, 1])
+        critical = queued_task(2, deadline_s=10.0)
+        self.assertEqual([task.task_id for task in ordered_tasks([normal, critical], 0.01)], [1, 2])
 
     def test_absolute_deadline_arrival_and_id_break_ties(self) -> None:
         tasks = [
@@ -92,7 +92,7 @@ class QueueingModelTests(unittest.TestCase):
     def test_mec_preemption_preserves_remaining_work_and_executor(self) -> None:
         resource = mec_resource()
         normal = queued_task(1)
-        critical = queued_task(2, criticality=Criticality.CRITICAL)
+        critical = queued_task(2, deadline_s=.1)
         tasks = {1: normal, 2: critical}
         resource.enqueue_task(1)
         reschedule_resource(resource, tasks, slot_duration_s=0.01)
@@ -114,7 +114,7 @@ class QueueingModelTests(unittest.TestCase):
     def test_server_preempts_through_a_full_waiting_queue_without_dropping(self) -> None:
         resource = server_resource()
         normal = queued_task(1, v2v=True)
-        critical = queued_task(2, criticality=Criticality.CRITICAL, v2v=True)
+        critical = queued_task(2, deadline_s=.1, v2v=True)
         tasks = {1: normal, 2: critical}
         resource.enqueue_task(1)
         reschedule_resource(resource, tasks, slot_duration_s=0.01)

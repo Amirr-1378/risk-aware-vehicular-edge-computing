@@ -7,6 +7,7 @@ from ..entities._validation import (
     require_positive_float, require_positive_int,
 )
 from ..models.channel import LogDistanceChannel
+from ..contracts import COST_MODEL_VERSION, validate_objective_weights
 
 
 @dataclass(frozen=True, slots=True)
@@ -42,7 +43,7 @@ class EnvironmentConfig:
     latency_weight: float = 0.60
     energy_weight: float = 0.25
     mec_weight: float = 0.15
-    deadline_penalty: float = 2.0
+    cost_model_version: int = COST_MODEL_VERSION
 
     def __post_init__(self) -> None:
         for name in ("arrival_horizon_slots", "outage_persistence_slots", "max_episode_slots",
@@ -58,9 +59,13 @@ class EnvironmentConfig:
             object.__setattr__(self, name, require_positive_float(name, getattr(self, name)))
         for name in (
             "min_v2v_snr_linear", "query_build_energy_j", "latency_weight",
-            "energy_weight", "mec_weight", "deadline_penalty",
+            "energy_weight", "mec_weight",
         ):
             object.__setattr__(self, name, require_non_negative_float(name, getattr(self, name)))
+        require_positive_int("cost_model_version", self.cost_model_version)
+        if self.cost_model_version != COST_MODEL_VERSION:
+            raise ValueError("unsupported cost model; historical costs cannot be resumed")
+        validate_objective_weights(self.latency_weight, self.energy_weight, self.mec_weight)
         if self.max_episode_slots < self.arrival_horizon_slots:
             raise ValueError("episode guard cannot precede the arrival horizon")
         for name in ("v2i_uplink", "v2i_downlink", "v2v"):

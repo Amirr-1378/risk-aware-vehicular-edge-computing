@@ -5,7 +5,7 @@ import unittest
 from dataclasses import FrozenInstanceError, replace
 
 from risk_aware_v2x.entities import (
-    Criticality, ExecutorKind, MECServer, QueryStatus, ServerVehicle, Task,
+    ExecutorKind, MECServer, QueryStatus, ServerVehicle, Task,
     TaskStatus, UserVehicle,
 )
 from risk_aware_v2x.environment import EnvironmentConfig, SlottedEnvironment
@@ -49,7 +49,7 @@ def make_task(task_id: int = 1, **changes: object) -> Task:
         "task_id": task_id, "owner_vehicle_id": 1, "arrival_slot": 0,
         "input_size_bits": 1_000, "output_size_bits": 100,
         "cpu_cycles_per_bit": 100.0, "deadline_s": 1.0,
-        "criticality": Criticality.NORMAL, "energy_budget_j": 1.0, **changes,
+        "energy_budget_j": 1.0, **changes,
     })
 
 
@@ -127,7 +127,7 @@ class EnvironmentLifecycleTests(unittest.TestCase):
         self.assertAlmostEqual(100.0 - env.server_vehicles[9].battery_energy_j, server_energy)
         self.assertEqual(env.metrics()["v2v_completed_workload_fraction"], 1.0)
 
-    def test_deadline_penalty_occurs_once_while_late_task_continues(self) -> None:
+    def test_deadline_miss_is_recorded_once_without_penalty_while_task_continues(self) -> None:
         env = make_env(tasks=[make_task(deadline_s=0.01)])
         env.reset()
         env.step({})
@@ -139,7 +139,7 @@ class EnvironmentLifecycleTests(unittest.TestCase):
         self.assertEqual(env.tasks[1].status, TaskStatus.COMPLETED_LATE)
         self.assertEqual(sum(event.kind == "deadline_missed" for event in env.events), 1)
         task, ledger = env.tasks[1], env.ledgers[1]
-        expected = 0.60 * task.completion_time_s / task.deadline_s + 0.25 * ledger.energy.total_j + 0.15 + 2.0
+        expected = 0.60 * task.completion_time_s / task.deadline_s + 0.25 * ledger.energy.total_j + 0.15
         self.assertAlmostEqual(ledger.total_cost, expected)
 
     def test_exact_deadline_completion_is_on_time(self) -> None:
@@ -151,7 +151,7 @@ class EnvironmentLifecycleTests(unittest.TestCase):
         env.reset()
         drain(env)
         self.assertEqual(env.tasks[1].status, TaskStatus.COMPLETED_ON_TIME)
-        self.assertFalse(env.ledgers[1].deadline_charged)
+        self.assertFalse(env.ledgers[1].deadline_recorded)
 
     def test_horizon_ends_before_drain_and_guard_does_not_drop_tasks(self) -> None:
         env = make_env(config=make_config(max_episode_slots=4))
@@ -264,7 +264,7 @@ class QueryAndObservationTests(unittest.TestCase):
         observation = env.observations[1]
         self.assertEqual([slot.record.server_vehicle_id if slot else None for slot in observation.servers], [9, 12, None])
         self.assertEqual(observation.action_mask, (True, True, True, False))
-        self.assertEqual(observation.schema_version, 2)
+        self.assertEqual(observation.schema_version, 3)
 
     def test_no_registered_server_leaves_mec_as_only_valid_action(self) -> None:
         env = make_env(servers=[make_server(position_m=(600.0, 0.0))])
@@ -384,9 +384,9 @@ class RecoveryAndBatchTests(unittest.TestCase):
         drain(env)
         self.assertTrue(env.tasks[1].is_terminal)
 
-    def test_mec_critical_arrival_preempts_at_next_boundary_without_losing_work(self) -> None:
+    def test_mec_earlier_deadline_arrival_preempts_without_losing_work(self) -> None:
         env = make_env(config=make_config(arrival_horizon_slots=7), tasks=[
-            make_task(1), make_task(2, arrival_slot=6, criticality=Criticality.CRITICAL,
+            make_task(1), make_task(2, arrival_slot=6, deadline_s=.1,
                                     input_size_bits=10, cpu_cycles_per_bit=1.0),
         ])
         env.reset()
@@ -474,13 +474,13 @@ class EnvironmentScientificTests(unittest.TestCase):
             self.assertEqual(a, b)
             self.assertEqual(first.reserves.protected_j(1), second.reserves.protected_j(1))
 
-    def test_combined_cost_fixture_and_criticality_scaling(self) -> None:
-        # 0.6*(0.5/1) + 0.25*(0.2/1) + 0.15 + 2 = 2.5.
-        for criticality, expected in ((Criticality.NORMAL, 2.5), (Criticality.HIGH, 5.0), (Criticality.CRITICAL, 10.0)):
-            with self.subTest(criticality=criticality):
-                value = incremental_cost(make_task(criticality=criticality), make_config(),
-                                         elapsed_s=.5, energy_j=.2, mec_event=True, deadline_event=True)
-                self.assertAlmostEqual(value, expected)
+    def test_combined_cost_has_exactly_three_terms_with_no_saturation_or_penalty(self) -> None:
+        # .6*(.5/1) + .25*(.2/1) + .15 = .5, regardless of miss flag.
+        task = make_task()
+        self.assertAlmostEqual(incremental_cost(task, make_config(), elapsed_s=.5, energy_j=.2, mec_event=True), .5)
+        task.deadline_missed = True
+        self.assertAlmostEqual(incremental_cost(task, make_config(), elapsed_s=.5, energy_j=.2, mec_event=True), .5)
+        self.assertAlmostEqual(incremental_cost(task, make_config(), elapsed_s=3.), 1.8)
         with self.assertRaises(ValueError):
             incremental_cost(make_task(), make_config(), elapsed_s=-1.0)
 
@@ -507,7 +507,7 @@ class EnvironmentScientificTests(unittest.TestCase):
         trace = [make_task(
             task_id + 1, owner_vehicle_id=task_id % 3 + 1,
             arrival_slot=arrivals.randrange(50), input_size_bits=arrivals.randrange(1_000, 4_000),
-            criticality=arrivals.choice(list(Criticality)), deadline_s=.5,
+            deadline_s=arrivals.choice((.1, .3, .5)),
         ) for task_id in range(24)]
         config = make_config(arrival_horizon_slots=60,
                              v2v=LogDistanceChannel(5.9e9, 2.0, shadowing_std_db=3.0, rayleigh_fading=True))
@@ -532,8 +532,8 @@ class EnvironmentScientificTests(unittest.TestCase):
             ledger = env.ledgers[task_id]
             elapsed_s = task.completion_time_s - task.arrival_slot * config.slot_duration_s
             self.assertAlmostEqual(ledger.latency.total_s, elapsed_s)
-            expected = int(task.criticality) * (
+            expected = (
                 .60 * elapsed_s / task.deadline_s + .25 * ledger.energy.total_j / task.energy_budget_j
-                + .15 * (task.final_executor_kind is ExecutorKind.MEC) + 2.0 * task.deadline_missed
+                + .15 * (task.final_executor_kind is ExecutorKind.MEC)
             )
             self.assertAlmostEqual(ledger.total_cost, expected)

@@ -18,7 +18,7 @@ class ObservationEncodingTests(unittest.TestCase):
 
     def test_fixed_dimension_and_all_zero_padding(self):
         encoded = self.encoder.encode(self.observation)
-        self.assertEqual(self.encoder.dimension, 39 + 15 * 3)
+        self.assertEqual(self.encoder.dimension, 36 + 15 * 3)
         self.assertEqual(len(encoded.values), self.encoder.dimension)
         self.assertEqual(encoded.values[-30:], (0.,) * 30)
         self.assertEqual(encoded.action_mask, (True, True, False, False))
@@ -29,8 +29,7 @@ class ObservationEncodingTests(unittest.TestCase):
         features = dict(zip(self.encoder.feature_names, self.encoder.encode(raw).values, strict=True))
         self.assertEqual(features["task.input"], 2.)
         self.assertEqual(features["task.deadline_slack"], -2.)
-        self.assertEqual(features["task.criticality_normal"], 1.)
-        self.assertEqual(features["task.criticality_critical"], 0.)
+        self.assertFalse(any("criticality" in name or "priority" in name for name in features))
         self.assertEqual(features["server[0].present"], 1.)
         self.assertEqual(features["query.cache_valid"], 1.)
 
@@ -42,7 +41,7 @@ class ObservationEncodingTests(unittest.TestCase):
         raw = replace(self.observation, deadline_s=.6, deadline_slack_s=0., elapsed_deadline_fraction=1.)
         encoded = self.encoder.encode(raw)
         features = dict(zip(self.encoder.feature_names, encoded.values, strict=True))
-        self.assertEqual(encoded.schema_version, 2)
+        self.assertEqual(encoded.schema_version, 3)
         self.assertEqual(features["task.deadline"], .6)
         self.assertEqual(features["task.deadline_slack"], 0.)
 
@@ -71,7 +70,7 @@ class ObservationEncodingTests(unittest.TestCase):
     def test_zero_server_capacity_still_encodes_mec(self):
         encoder = ObservationEncoder(max_server_vehicles=0, scales=FeatureScales())
         raw = replace(self.observation, servers=(), action_mask=(True,))
-        self.assertEqual(len(encoder.encode(raw).values), 39)
+        self.assertEqual(len(encoder.encode(raw).values), 36)
 
     def test_invalid_schema_capacity_mask_and_nonfinite_values(self):
         for change in ({"schema_version": 1}, {"servers": ()},

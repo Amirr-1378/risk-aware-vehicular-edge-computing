@@ -32,6 +32,11 @@ cross-platform, and CPU/GPU bitwise agreement
 is not promised; see [PyTorch reproducibility guidance](https://docs.pytorch.org/docs/2.14/notes/randomness.html).
 No GPU execution is implemented in this milestone.
 
+The active reference is [objective_and_preferences.md](objective_and_preferences.md):
+label-free three-term cost model v2, plain EDF, and preference diagnostics only.
+Old reported performance/checkpoints use a different objective and are not
+evidence for this revision.
+
 ## Common architecture and information
 
 `NeuralCostAgent(config, encoder, seed=...)` uses a fully connected ReLU network
@@ -128,6 +133,14 @@ data/seeds. Learned tail scores are distribution estimates, not safety or
 deadline guarantees. Quantile calibration/crossing and tail-estimation quality
 still need evaluation in the scientific experiment stage.
 
+`AgentConfig.sigmoid_beta` is a positive finite scalar, default 1. It is not
+trained and does not enter act(), targets(), quantile loss or exploration.
+`preference_diagnostics()` reports each observed-valid SV's J-minus-MEC gap
+and a numerically stable sigmoid MEC-preference score. It neither samples
+nor splits tasks. Only this scalar preference curve is smooth; the full
+ReLU network, mask, simulator and discrete argmin need not be. Large gaps may
+numerically saturate, so actions are always ranked by original J, not sigmoid.
+
 ## Exploration clock and training/evaluation protocol
 
 `EpsilonSchedule` linearly decays from initial to final epsilon over a
@@ -172,11 +185,14 @@ the next episode index and physical training
 clock. Checkpoints are episode-boundary snapshots; in-flight simulator tasks,
 queries, and unfinished decision intervals are **not** resumable mid-episode.
 
-The current input schema is version 2 (`39+15*M` features), including the own
-task's original deadline. Existing v1 artifacts are preserved but rejected by
+The current input schema is version 3 (`36+15*M` features), retaining the own
+task's original deadline and removing manual label inputs. Old v1/v2 artifacts
+are preserved but rejected by
 the encoder-signature check; they are not automatically padded or resumed.
-The stochastic runner now defaults to `learning_pilot_v2.json` and comparison
-suite 2. See [combined_cost_baseline.md](combined_cost_baseline.md).
+The stochastic runner now defaults to `learning_pilot_v3.json` and comparison
+suite 3. Replay/checkpoint containers are version 2 and explicitly require
+cost model v2, even if a legacy file spoofs matching input dimensions.
+See [objective_and_preferences.md](objective_and_preferences.md).
 
 Tests verify the next exploratory action and optimizer update after loading,
 as well as 2+2 resumed episodes versus 4 uninterrupted episodes: identical

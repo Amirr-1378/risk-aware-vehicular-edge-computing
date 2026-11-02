@@ -22,10 +22,10 @@ class CombinedCostBaselineTests(unittest.TestCase):
         self.raw = replace(raw, input_size_bits=1_000, output_size_bits=100,
             required_cpu_cycles=100_000., remaining_cpu_cycles=100_000.,
             deadline_s=10., deadline_slack_s=10., energy_budget_j=10., tx_power_fraction=1.,
-            criticality_weight=1, servers=(server, None, None), mec=replace(raw.mec,
+            servers=(server, None, None), mec=replace(raw.mec,
             available_cpu_hz=100_000., estimated_queue_delay_s=.25,
             estimated_uplink_rate_bps=1_000., estimated_downlink_rate_bps=1_000.))
-        self.parameters = GreedyCostParameters(.6, .25, .15, 2., 1., .5, 1., .5, 1e-16)
+        self.parameters = GreedyCostParameters(.6, .25, .15, 1., .5, 1., .5, 1e-16)
         self.policy = MinimumEstimatedCombinedCost(self.parameters)
 
     def test_mec_cost_uses_user_only_energy_and_queue_delay_once(self):
@@ -34,7 +34,7 @@ class CombinedCostBaselineTests(unittest.TestCase):
         self.assertAlmostEqual(estimate.mobile_energy_j, 1.05)
         self.assertAlmostEqual(estimate.cost, .6 * 2.35 / 10 + .25 * 1.05 / 10 + .15)
         self.assertIsNone(estimate.remaining_cached_contact_s)
-        self.assertFalse(estimate.new_deadline_miss)
+        self.assertFalse(estimate.projected_deadline_miss)
 
     def test_v2v_cost_contains_both_mobile_radios_and_task_cpu_only(self):
         estimate = self.policy.estimate(self.raw, 1)
@@ -49,35 +49,38 @@ class CombinedCostBaselineTests(unittest.TestCase):
         self.assertEqual(MinimumEstimatedLatency().act(self.raw), 0)
         self.assertEqual(self.policy.act(self.raw), 1)
 
-    def test_energy_weight_and_deadline_penalty_can_change_the_decision(self):
+    def test_energy_can_change_decision_but_projected_miss_is_diagnostic_only(self):
         expensive = MinimumEstimatedCombinedCost(replace(self.parameters, server_cpu_energy_coefficient=1e-14))
         self.assertEqual(expensive.act(self.raw), 0)
         urgent = replace(self.raw, deadline_slack_s=2.5)
-        self.assertFalse(self.policy.estimate(urgent, 0).new_deadline_miss)
-        self.assertTrue(self.policy.estimate(urgent, 1).new_deadline_miss)
-        self.assertEqual(self.policy.act(urgent), 0)
+        self.assertFalse(self.policy.estimate(urgent, 0).projected_deadline_miss)
+        self.assertTrue(self.policy.estimate(urgent, 1).projected_deadline_miss)
+        self.assertEqual(self.policy.act(urgent), 1)
+        self.assertEqual(self.policy.estimate(urgent, 1).cost, self.policy.estimate(self.raw, 1).cost)
 
     def test_strict_deadline_boundary_and_no_second_penalty_for_overdue_task(self):
         duration = self.policy.estimate(self.raw, 1).service_time_s
         exact = replace(self.raw, deadline_slack_s=duration)
-        self.assertFalse(self.policy.estimate(exact, 1).new_deadline_miss)
+        self.assertFalse(self.policy.estimate(exact, 1).projected_deadline_miss)
         crossed = replace(exact, deadline_slack_s=math.nextafter(duration, 0.))
-        self.assertTrue(self.policy.estimate(crossed, 1).new_deadline_miss)
-        self.assertTrue(self.policy.estimate(replace(self.raw, deadline_slack_s=0.), 1).new_deadline_miss)
+        self.assertTrue(self.policy.estimate(crossed, 1).projected_deadline_miss)
+        self.assertTrue(self.policy.estimate(replace(self.raw, deadline_slack_s=0.), 1).projected_deadline_miss)
         overdue = self.policy.estimate(replace(self.raw, deadline_slack_s=-1.), 1)
-        self.assertFalse(overdue.new_deadline_miss)
+        self.assertTrue(overdue.projected_deadline_miss)
         self.assertEqual(overdue.cost, self.policy.estimate(self.raw, 1).cost)
 
     def test_original_deadline_is_available_at_exact_deadline_no_zero_over_zero(self):
         raw = replace(self.raw, deadline_slack_s=0., elapsed_deadline_fraction=1.)
         estimate = self.policy.estimate(raw, 1)
-        self.assertAlmostEqual(estimate.cost, .6 * 3.1 / 10 + .25 * 1.75 / 10 + 2.)
+        self.assertAlmostEqual(estimate.cost, .6 * 3.1 / 10 + .25 * 1.75 / 10)
 
-    def test_criticality_multiplies_cost_not_hardware_energy(self):
-        normal = self.policy.estimate(self.raw, 1)
-        critical = self.policy.estimate(replace(self.raw, criticality_weight=4), 1)
-        self.assertEqual(critical.mobile_energy_j, normal.mobile_energy_j)
-        self.assertEqual(critical.cost, 4 * normal.cost)
+    def test_no_manual_label_or_deadline_penalty_parameter_can_be_injected(self):
+        self.assertFalse(hasattr(self.raw, "criticality_weight"))
+        self.assertFalse(hasattr(self.parameters, "deadline_penalty"))
+        with self.assertRaises(TypeError):
+            replace(self.raw, criticality_weight=4)
+        with self.assertRaises(TypeError):
+            replace(self.parameters, deadline_penalty=2.)
 
     def test_already_incurred_time_is_not_charged_again_in_remaining_score(self):
         # Holding slack/normalization fixed isolates the sunk elapsed feature.
@@ -106,9 +109,8 @@ class CombinedCostBaselineTests(unittest.TestCase):
         self.assertEqual(self.policy.estimate(expired, 1).remaining_cached_contact_s, 0.)
         self.assertEqual(self.policy.act(expired), 0)
 
-    def test_zero_rate_or_cpu_is_infinite_unavailable_not_nan_even_with_zero_weights(self):
-        parameters = replace(self.parameters, latency_weight=0., energy_weight=0., mec_weight=0., deadline_penalty=0.)
-        policy = MinimumEstimatedCombinedCost(parameters)
+    def test_zero_rate_or_cpu_is_infinite_unavailable_not_nan(self):
+        policy = self.policy
         server = self.raw.servers[0]
         for changes in ({"estimated_rate_bps": 0.}, {"available_cpu_hz": 0.}):
             raw = replace(self.raw, servers=(replace(server, record=replace(server.record, **changes)), None, None),
@@ -130,8 +132,7 @@ class CombinedCostBaselineTests(unittest.TestCase):
             with self.subTest(action=action), self.assertRaises((TypeError, ValueError)):
                 self.policy.estimate(self.raw, action)
         for changes in ({"schema_version": 1}, {"deadline_s": 0.}, {"energy_budget_j": 0.},
-                        {"deadline_slack_s": float("nan")}, {"criticality_weight": True},
-                        {"criticality_weight": 3}, {"tx_power_fraction": 2.}):
+                        {"deadline_slack_s": float("nan")}, {"tx_power_fraction": 2.}):
             with self.subTest(changes=changes), self.assertRaises((TypeError, ValueError)):
                 self.policy.estimate(replace(self.raw, **changes), 0)
         for changes in ({"energy_weight": -1.}, {"server_rx_power_w": float("nan")},
@@ -140,9 +141,10 @@ class CombinedCostBaselineTests(unittest.TestCase):
                 replace(self.parameters, **changes)
 
     def test_deterministic_ties_and_zero_candidates_use_mec(self):
-        policy = MinimumEstimatedCombinedCost(replace(self.parameters, latency_weight=0., energy_weight=0.,
-                                                      mec_weight=0., deadline_penalty=0.))
-        self.assertEqual(policy.act(self.raw), 0)
+        policy = self.policy
+        other = replace(self.raw.servers[0], record=replace(self.raw.servers[0].record, server_vehicle_id=10))
+        tie = replace(self.raw, servers=(self.raw.servers[0], other, None), action_mask=(True, True, True, False))
+        self.assertEqual(policy.act(tie), 1)
         raw = replace(self.raw, servers=(None, None, None), action_mask=(True, False, False, False))
         self.assertEqual(self.policy.act(raw), 0)
 
@@ -155,12 +157,14 @@ class CombinedCostBaselineTests(unittest.TestCase):
         self.assertEqual(random.getstate(), before)
 
     def test_registry_uses_shared_objective_and_frozen_public_static_constants(self):
-        config = replace(self.env.config, latency_weight=.7, energy_weight=.2, mec_weight=.1, deadline_penalty=4.)
+        config = self.env.config
+        with self.assertRaises(ValueError):
+            replace(config, latency_weight=.7, energy_weight=.2, mec_weight=.1)
         policies, contract = comparison_policies(config, self.env.users.values(), self.env.server_vehicles.values(), seed=3)
         self.assertEqual(len(policies), 5)
-        self.assertEqual(contract["baseline_suite_version"], 2)
+        self.assertEqual(contract["baseline_suite_version"], 3)
         params = policies["minimum_estimated_combined_cost"].parameters
-        for name in ("latency_weight", "energy_weight", "mec_weight", "deadline_penalty"):
+        for name in ("latency_weight", "energy_weight", "mec_weight"):
             self.assertEqual(getattr(params, name), getattr(config, name))
         self.assertEqual(contract["minimum_estimated_combined_cost"], asdict(params))
         self.assertEqual(params.server_cpu_energy_coefficient, self.env.server_vehicles[9].cpu_energy_coefficient)

@@ -150,9 +150,9 @@ class SlottedEnvironment:
         self._slot_events.append(event)
 
     def _charge(self, task: Task, *, energy_j: float = 0.0, elapsed_s: float = 0.0,
-                mec_event: bool = False, deadline_event: bool = False) -> None:
+                mec_event: bool = False) -> None:
         cost = incremental_cost(task, self.config, energy_j=energy_j, elapsed_s=elapsed_s,
-                                mec_event=mec_event, deadline_event=deadline_event)
+                                mec_event=mec_event)
         self.ledgers[task.task_id].total_cost += cost
         self._slot_costs[task.owner_vehicle_id] += cost
 
@@ -274,8 +274,8 @@ class SlottedEnvironment:
             if action < 0 or action >= len(mask) or not mask[action]:
                 raise ValueError("action is absent or masked in received observation")
         batch = sorted(actions, key=lambda user_id: (
-            *self.tasks[self._observations[user_id].task_id].scheduling_key(self.config.slot_duration_s)[:3],
-            user_id, self._observations[user_id].task_id,
+            *self.tasks[self._observations[user_id].task_id].scheduling_key(self.config.slot_duration_s),
+            user_id,
         ))
         for user_id in batch:
             observation = self._observations[user_id]
@@ -317,9 +317,8 @@ class SlottedEnvironment:
         for task_id in active:
             task, ledger = self.tasks[task_id], self.ledgers[task_id]
             end_s = task.completion_time_s if task.is_terminal else self._slot_time_s(self.slot + 1)
-            if end_s > task.absolute_deadline_s(self.config.slot_duration_s) and not ledger.deadline_charged:
-                task.deadline_missed = ledger.deadline_charged = True
-                self._charge(task, deadline_event=True)
+            if end_s > task.absolute_deadline_s(self.config.slot_duration_s) and not ledger.deadline_recorded:
+                task.deadline_missed = ledger.deadline_recorded = True
                 self._event("deadline_missed", task=task, time_s=end_s)
         events = tuple(sorted(self._slot_events, key=lambda event: event.time_s))
         if events:

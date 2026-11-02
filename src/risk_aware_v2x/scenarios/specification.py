@@ -3,7 +3,7 @@
 import math
 from dataclasses import dataclass
 
-from ..entities import Criticality
+from ..contracts import COST_MODEL_VERSION
 from ..entities._validation import (
     require_finite_float, require_fraction, require_non_negative_float,
     require_positive_float, require_positive_int, require_non_negative_int,
@@ -11,15 +11,13 @@ from ..entities._validation import (
 
 
 @dataclass(frozen=True, slots=True)
-class TaskClassSpec:
-    criticality: Criticality
+class TaskDeadlineSpec:
+    """Unlabelled deadline/energy distribution component; no priority class."""
     probability: float
     deadline_s: float
     energy_budget_j: float
 
     def __post_init__(self):
-        if not isinstance(self.criticality, Criticality):
-            raise TypeError("criticality must be Criticality")
         for name, validator in (("probability", require_fraction),
                                 ("deadline_s", require_positive_float),
                                 ("energy_budget_j", require_positive_float)):
@@ -42,7 +40,8 @@ class ScenarioSpec:
     uniform and real values continuous uniform. Lanes are equiprobable; their
     alternating index fixes direction (+x for even, -x for odd lane indices).
     """
-    schema_version: int = 1
+    schema_version: int = 2
+    cost_model_version: int = COST_MODEL_VERSION
     label: str = "nominal"
     calibration_status: str = "synthetic-development-only"
     num_users: int = 3
@@ -57,10 +56,10 @@ class ScenarioSpec:
     input_size_bits: tuple[int, int] = (32_000, 96_000)
     output_size_bits: tuple[int, int] = (512, 4_096)
     cpu_cycles_per_bit: tuple[float, float] = (300., 700.)
-    task_classes: tuple[TaskClassSpec, ...] = (
-        TaskClassSpec(Criticality.NORMAL, .7, .6, .1),
-        TaskClassSpec(Criticality.HIGH, .2, .3, .1),
-        TaskClassSpec(Criticality.CRITICAL, .1, .15, .1),
+    deadline_profiles: tuple[TaskDeadlineSpec, ...] = (
+        TaskDeadlineSpec(.7, .6, .1),
+        TaskDeadlineSpec(.2, .3, .1),
+        TaskDeadlineSpec(.1, .15, .1),
     )
     lane_y_m: tuple[float, ...] = (-1.75, 1.75)
     user_initial_x_m: tuple[float, float] = (-30., 30.)
@@ -82,8 +81,11 @@ class ScenarioSpec:
 
     def __post_init__(self):
         require_positive_int("schema_version", self.schema_version)
-        if self.schema_version != 1 or self.calibration_status != "synthetic-development-only":
-            raise ValueError("only uncalibrated development schema v1 is supported")
+        if self.schema_version != 2 or self.calibration_status != "synthetic-development-only":
+            raise ValueError("only unlabelled development schema v2 is supported")
+        require_positive_int("cost_model_version", self.cost_model_version)
+        if self.cost_model_version != COST_MODEL_VERSION:
+            raise ValueError("scenario cost-model mismatch")
         if not isinstance(self.label, str) or not self.label.strip():
             raise ValueError("a nonempty scenario label is required")
         for name in ("num_users", "arrival_horizon_slots", "max_episode_slots", "max_tasks_per_user"):
@@ -116,11 +118,10 @@ class ScenarioSpec:
         _interval("server_self_cpu_fraction", self.server_self_cpu_fraction, require_fraction)
         if self.server_self_cpu_fraction[1] >= .95:
             raise ValueError("self-work plus the fixed 5% CPU reservation must leave service CPU")
-        if (not isinstance(self.task_classes, tuple) or not self.task_classes
-                or not all(isinstance(entry, TaskClassSpec) for entry in self.task_classes)
-                or len({entry.criticality for entry in self.task_classes}) != len(self.task_classes)
-                or not math.isclose(math.fsum(entry.probability for entry in self.task_classes), 1., abs_tol=1e-12, rel_tol=0)):
-            raise ValueError("unique task classes with probabilities summing to one are required")
+        if (not isinstance(self.deadline_profiles, tuple) or not self.deadline_profiles
+                or not all(isinstance(entry, TaskDeadlineSpec) for entry in self.deadline_profiles)
+                or not math.isclose(math.fsum(entry.probability for entry in self.deadline_profiles), 1., abs_tol=1e-12, rel_tol=0)):
+            raise ValueError("unlabelled deadline profiles with probabilities summing to one are required")
         if not isinstance(self.lane_y_m, tuple) or not self.lane_y_m:
             raise ValueError("at least one immutable lane coordinate is required")
         lateral = max(abs(require_finite_float("lane_y_m", value)) for value in self.lane_y_m)
@@ -145,11 +146,6 @@ class ScenarioSpec:
         for name in pair_names:
             if name in data:
                 data[name] = tuple(data[name])
-        if "task_classes" in data:
-            classes = []
-            for record in data["task_classes"]:
-                record = dict(record)
-                record["criticality"] = Criticality(require_positive_int("criticality", record["criticality"]))
-                classes.append(TaskClassSpec(**record))
-            data["task_classes"] = tuple(classes)
+        if "deadline_profiles" in data:
+            data["deadline_profiles"] = tuple(TaskDeadlineSpec(**record) for record in data["deadline_profiles"])
         return cls(**data)

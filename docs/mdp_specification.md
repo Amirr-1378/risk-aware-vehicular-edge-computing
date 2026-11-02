@@ -11,6 +11,11 @@ This document defines the learning-facing interface and the exact ordering of
 time-slotted state transitions. Scientific formulas and entity units are
 defined in [`scientific_model.md`](scientific_model.md).
 
+Active cost/control definitions are centralized in
+[`objective_and_preferences.md`](objective_and_preferences.md). Cost model 2
+has no manual priority label or independent deadline penalty. Sigmoid scores
+are diagnostics/preferences only; neither cost nor discrete actions are smoothed.
+
 ## 1. Control formulation
 
 The simulator has a fully specified Markov environment state \(X_t\), including
@@ -81,12 +86,12 @@ later in the same slot.
 4. If the cache is missing or expired, start or continue one query and keep
    affected tasks waiting.
 5. If the cache is valid, select at most one unassigned task per user using
-   criticality-aware EDF and construct its observation and observed action
+   label-free EDF and construct its observation and observed action
    mask.
 6. Compute every active user's offloading action from the same pre-admission
    state.
 7. Apply the action batch to MEC/server queues.
-8. Recompute scheduler allocations using criticality-aware preemptive EDF.
+8. Recompute scheduler allocations using label-free preemptive EDF.
 
 ### During slot \([t,t+\Delta t)\)
 
@@ -100,7 +105,7 @@ later in the same slot.
 12. Detect V2V service interruption from the true physical state; mark an
     automatic MEC fallback for admission at the next slot start.
 13. Mark task completions.
-14. Detect first deadline crossings and charge each deadline penalty once;
+14. Record first deadline crossings without any separate penalty;
     late tasks remain active.
 15. Update server/user energy states.
 16. Advance mobility and stochastic channel state to \(t+1\) using explicit
@@ -201,7 +206,7 @@ A user requests an action only when
 - the task has not already been assigned.
 
 At most one new task per user is assigned per slot. The user's local admission
-order is the same criticality-aware EDF ordering used by compute resources.
+order is the same label-free EDF ordering used by compute resources.
 Tasks not selected for admission remain active and accrue elapsed-time cost.
 
 Users without an eligible decision do not choose a learned `NO_OP`; the
@@ -256,7 +261,7 @@ the task-centric observation for user \(u\) contains the following.
 - output size in bits;
 - required and remaining CPU cycles;
 - absolute deadline slack in seconds;
-- criticality encoding;
+- original relative deadline in seconds (no criticality/priority encoding);
 - energy budget;
 - elapsed time normalized by deadline.
 
@@ -314,8 +319,8 @@ When several users act in one slot:
 2. every policy action is computed before any of those actions changes a
    queue;
 3. actions are then admitted as one deterministic batch;
-4. batch ties at a resource are ordered by task criticality, deadline,
-   arrival slot, user identifier, and task identifier.
+4. batch ties use absolute deadline, arrival slot, stable task identifier,
+   then user identifier as a redundant final deterministic key.
 
 This makes simultaneous decisions reproducible and avoids giving an arbitrary
 first user fresher resource information.
@@ -329,7 +334,6 @@ An appropriate decomposition is
 \[
 c_{u,t}=
 \sum_{i\in\mathcal I_{u,t}}
-w_i^{\mathrm{crit}}
 \left[
 0.60\frac{\Delta T_{i,t}}{D_i}
 +0.25\frac{\Delta E_{i,t}^{\mathrm{mobile}}}{E_i^{\mathrm{budget}}}
@@ -341,11 +345,9 @@ where one-time event cost is
 
 \[
 c_{u,t}^{\mathrm{events}}=
-\sum_i w_i^{\mathrm{crit}}
-\left[
+\sum_i
 0.15\,\mathbf 1(\text{MEC becomes final executor in }t)
-+2\,\mathbf 1(\text{first deadline crossing in }t)
-\right].
+.
 \]
 
 Query energy is counted once in \(\Delta E_{u,t}^{\mathrm{mobile}}\) and
@@ -383,6 +385,13 @@ J(s,a)=0.5\,\operatorname{mean}(q_1,\ldots,q_N)
 
 and the valid action with minimum score is selected outside exploration.
 
+For every valid SV j, Delta_j=J(s,j)-J(s,MEC) and
+g_j=sigmoid(beta*Delta_j), beta>0 (default 1). Low g favors that SV, .5 is
+equal cost score, high g favors MEC. This same curve is not a destination
+probability, has no independent learning, and does not enter quantile loss,
+TD targets, real task costs or argmin selection. Beta cannot change actions.
+Only this scalar curve is smooth, not the whole environment/network/selector.
+
 If the implementation trains reward quantiles instead, it must use the lower
 10% reward tail and maximize the sign-equivalent score. Unit tests must prove
 the cost-space and reward-space selectors choose the same action.
@@ -419,7 +428,7 @@ T_i\le D_i\quad\Longrightarrow\quad\text{on time}.
 \]
 
 The first transition from \(T_i\le D_i\) to \(T_i>D_i\) sets
-`deadline_missed`, charges the deadline penalty once, and keeps the task
+`deadline_missed`, records the event without a surcharge, and keeps the task
 active. Completion later produces `COMPLETED_LATE`.
 
 ## 14. Randomness and reproducibility
@@ -450,10 +459,10 @@ unrelated subsystems. Tests must verify stream isolation.
 | Cached-valid server is physically invalid at service | Interruption then full MEC fallback |
 | No cached-valid server | Only MEC action remains valid |
 | Multiple users act in one slot | Actions use common pre-admission state and deterministic batch admission |
-| Critical task arrives behind normal task | It preempts at the next slot boundary |
-| Equal criticality, different deadlines | Earlier deadline runs first |
+| Earlier absolute deadline arrives behind a later one | It preempts at the next slot boundary |
+| Different deadlines | Earlier absolute deadline runs first, no manual classes |
 | Deadline reached exactly | Task remains on time |
-| Deadline crossed | One penalty only; task continues |
+| Deadline crossed | One recorded miss, no penalty; task continues |
 | V2V interruption after partial compute | Partial cycles discarded; MEC receives full original cycles |
 | V2V interruption after energy use | Prior energy remains charged |
 | Direct MEC completion | MEC-use cost charged exactly once |
@@ -476,9 +485,8 @@ versioned configuration.
 | Information lifetime | 100 ms | 50, 100, 200 ms |
 | CVaR confidence | 0.9 | report at least 0.9; optional 0.95 |
 | Risk-mixture weight | 0.5 | 0, 0.25, 0.5, 0.75, 1 |
-| Criticality weights | 1, 2, 4 | fixed primary; ablate if needed |
-| Deadline penalty | 2 | 1, 2, 4 |
-| MEC-use weight | 0.15 | 0, 0.10, 0.15, 0.20 |
+| Sigmoid beta | 1 | positive display slope; changing it cannot change selection |
+| Objective weights | .60/.25/.15 | fixed shared cost-model-v2 contract |
 
 The maximum number of exposed server-vehicle slots, task distributions,
 channel scenario, mobility traces, outage persistence window, and episode

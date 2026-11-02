@@ -29,10 +29,20 @@ analytical baselines, with separate per-model risk and conditional seed
 variation. Calibrated paper-scale experiments remain a subsequent milestone.
 The fixed-policy suite now includes cached combined-cost greedy control with
 shared objective/hardware assumptions. Own-task deadlines are explicit in
-raw/vector input schema v2; old checkpoints are preserved but incompatible.
+raw/vector input schema v3 removes manual priority labels; old checkpoints
+are preserved but incompatible with cost model v2.
+
+The approved 2026-11-02 revision uses exactly
+`z=.60*T/D+.25*E_mobile/E_budget+.15*M`, without a manual task multiplier or
+deadline surcharge. Queues use plain EDF. QR-CVaR retains alpha=.9 and
+lambda=.5; sigmoid(beta*(J_SV-J_MEC)), beta=1 by default, reports preference
+only. Greedy destination selection remains masked argmin J, independent of
+beta. Deadline misses/tardiness remain metrics, not added costs.
 
 The approved design baseline is documented in:
 
+- [`docs/objective_and_preferences.md`](docs/objective_and_preferences.md):
+  authoritative current objective, risk score, sigmoid meaning, selector and version contract;
 - [`docs/scientific_model.md`](docs/scientific_model.md): scientific
   assumptions, entities, units, formulas, information lifetime, and metrics;
 - [`docs/mdp_specification.md`](docs/mdp_specification.md): observations,
@@ -67,8 +77,10 @@ The implementation milestones are:
 8. **complete:** bounded multi-seed stochastic neural training/validation pilot
    infrastructure, final-model artifacts, and conditional training-seed diagnostics;
 9. **complete:** cached combined-cost greedy baseline, shared fixed-policy suite,
-   explicit own-deadline input schema v2, and versioned comparison integration;
-10. **next:** empirical calibration, larger learned training, frozen paper
+   explicit own-deadline inputs, and versioned comparison integration;
+10. **complete:** approved label-free three-term cost revision, plain EDF,
+   sigmoid preference diagnostics, schema/checkpoint guards, and regression tests;
+11. **next:** empirical calibration, larger learned training, frozen paper
    protocols, adapted paper/query-free MEC baselines, and final evaluation.
 
 ## Repository layout
@@ -92,6 +104,8 @@ tests/           Unit and integration tests
 The base-paper reconstruction remains in its own repository. This project
 may reimplement documented equations and baseline behavior with explicit
 provenance, but it must not silently depend on or modify that repository.
+Its native internal objective must not be silently replaced by our common
+evaluation cost. Faithful reconstruction/action-space adaptation is still pending.
 
 ## Development
 
@@ -120,7 +134,7 @@ virtual environment, run:
 $env:PYTHONPATH = "src"
 .\.venv\Scripts\python.exe -m unittest discover -s tests -v
 .\.venv\Scripts\python.exe -m experiments.run_learning_smoke --algorithm qr_dqn_cvar --episodes 4
-.\.venv\Scripts\python.exe -m experiments.run_learning_audit --output-dir reports/learning-pilot-v2
+.\.venv\Scripts\python.exe -m experiments.run_learning_audit --output-dir reports/learning-pilot-v3
 ```
 
 Run a synthetic environment integration demonstration (not a paper benchmark):

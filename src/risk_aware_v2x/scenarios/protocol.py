@@ -9,6 +9,7 @@ from ..entities._validation import require_fraction, require_non_negative_int, r
 from ..models.randomness import RandomStreams
 from .generator import canonical_json
 from .specification import ScenarioSpec
+from ..contracts import COST_MODEL_VERSION
 
 SPLITS = ("train", "validation", "test")
 
@@ -41,13 +42,17 @@ class DevelopmentProtocol:
     cvar_alpha: float = .9
     bootstrap_resamples: int = 2_000
     bootstrap_confidence: float = .95
-    schema_version: int = 1
+    schema_version: int = 2
+    cost_model_version: int = COST_MODEL_VERSION
     purpose: str = "development-only-not-final-paper-protocol"
 
     def __post_init__(self):
         require_positive_int("schema_version", self.schema_version)
-        if self.schema_version != 1 or self.purpose != "development-only-not-final-paper-protocol":
-            raise ValueError("only development protocol v1 is supported")
+        if self.schema_version != 2 or self.purpose != "development-only-not-final-paper-protocol":
+            raise ValueError("use label-free development protocol v2; historical objectives are incompatible")
+        require_positive_int("cost_model_version", self.cost_model_version)
+        if self.cost_model_version != COST_MODEL_VERSION:
+            raise ValueError("protocol cost-model mismatch")
         if not isinstance(self.revision, str) or not self.revision.strip():
             raise ValueError("protocol revision is required")
         require_non_negative_int("master_seed", self.master_seed)
@@ -90,7 +95,7 @@ class DevelopmentProtocol:
         if index >= self.split_counts[SPLITS.index(split)]:
             raise ValueError("episode index lies outside its predeclared split")
         streams = RandomStreams(self.master_seed)
-        values = [streams.stream(f"development-plan-v1:{split}:{index}:{role}").getrandbits(63)
+        values = [streams.stream(f"development-plan-v2:{split}:{index}:{role}").getrandbits(63)
                   for role in ("scenario", "channel", "policy")]
         return EpisodeSeeds(split, index, *values)
 
@@ -107,6 +112,8 @@ class DevelopmentProtocol:
     @classmethod
     def load(cls, path: str | Path):
         data = json.loads(Path(path).read_text(encoding="utf-8"), object_pairs_hook=_unique_object)
+        if data.get("schema_version") != 2 or data.get("cost_model_version") != COST_MODEL_VERSION:
+            raise ValueError("use label-free development protocol v2 with explicit cost model v2")
         base, profiles = data.pop("base_scenario"), data.pop("profile_overrides")
         counts = data.pop("split_counts")
         if set(counts) != set(SPLITS):

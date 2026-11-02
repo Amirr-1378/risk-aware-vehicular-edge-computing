@@ -1,4 +1,4 @@
-# Multi-Seed Neural Development Audit v2
+# Multi-Seed Neural Development Audit v3 (Cost Model 2)
 
 Status: implemented bounded stochastic training, fixed-final-model validation,
 matched analytical comparisons, and explicit training-seed diagnostics.
@@ -8,20 +8,20 @@ limitations remain those of [development_protocol.md](development_protocol.md).
 
 ## Versioned contract and development budget
 
-The current `experiments/configs/learning_pilot_v2.json` binds to the exact
-canonical SHA256 of `development_v1.json`'s expanded scenario plan. A changed
+The current `experiments/configs/learning_pilot_v3.json` binds to the exact
+canonical SHA256 of `development_v2.json`'s expanded scenario plan. A changed
 physical plan, undeclared agent seed/profile, excessive split prefix, or
 inconsistent CVaR confidence is rejected before scene construction or output.
 The learning plan has its own canonical hash. Reports preserve both expanded
 plans, encoder/scales, scenario manifests, seeds, actual source hash, Git
 revision/dirty status, package versions, and CPU/runtime settings.
 
-Version 2 records raw/encoded input schemas 2 and fixed-baseline suite 2. It
-adds the own original task deadline to every policy's inputs and introduces
-the cached combined-cost comparison. The v1 configuration and local artifacts
-are preserved as historical records, but are not load-compatible with v2.
-See [combined_cost_baseline.md](combined_cost_baseline.md) for the equations,
-shared public static assumptions, and explicit migration boundary.
+Version 3 records cost model 2, raw/encoded input schemas 3 and baseline suite
+3. It removes manual labels and the deadline surcharge, retains physical
+deadline features and adds sigmoid preference diagnostics (beta=1) without
+changing lambda=.5 or argmin selection. Old configurations/artifacts are
+preserved but not compatible. The reference equations and version boundary
+are in [objective_and_preferences.md](objective_and_preferences.md).
 
 | Pilot choice | Value | Meaning/status |
 | --- | --- | --- |
@@ -149,7 +149,7 @@ Install the optional learning dependencies, then from the repository root:
 
 ```powershell
 $env:PYTHONPATH = "src"
-.\.venv\Scripts\python.exe -m experiments.run_learning_audit --output-dir reports/learning-pilot-v2
+.\.venv\Scripts\python.exe -m experiments.run_learning_audit --output-dir reports/learning-pilot-v3
 ```
 
 This runs 8 trained models (4 algorithms x 2 seeds), 32 training episodes,
@@ -173,13 +173,16 @@ continuation provenance; existing checkpoints/reports are never overwritten.
 The common CPU loop is now `experiments/learning_runtime.py`; both smoke and
 stochastic entry points use it. Core neural update and physical kernels are
 unchanged; observation/encoder schemas and the fixed-policy suite are upgraded
-in v2. Tests cover final-checkpoint metadata,
+in the active revision. Tests cover final-checkpoint metadata,
 all four algorithms, seed/profile order invariance, matched scenes, full cost
 conservation, evaluation immutability, fixed budgets, no test execution,
 empty episodes, conditional-seed formulas, failure propagation, protocol
 rejection, global RNG isolation, and exclusive artifacts.
 
 ## Historical v1 verification snapshot (2026-10-22)
+
+This archived record uses the old objective/manual labels. It is not evidence
+for corrected cost model 2, and none of its reported results is overwritten.
 
 The historical v1 pilot configuration completed 8 models and all 128 planned
 training/validation executions. Each model ingested 77 transitions and made

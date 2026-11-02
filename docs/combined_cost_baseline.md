@@ -1,35 +1,35 @@
-# Cached Plug-In Combined-Cost Baseline and Input Schema v2
+# Cached Plug-In Combined-Cost Baseline: Active Cost v2 / Input v3
 
 Status: `MinimumEstimatedCombinedCost` is implemented as a deterministic
 **myopic point-estimate heuristic**. It is project-defined from the approved
 objective, not a reproduction of a published expected-cost optimizer or the
 paper best-response baseline. It does not estimate a conditional cost
 distribution, compute CVaR, or anticipate all future fallback/queue effects.
+The active reference is [objective_and_preferences.md](objective_and_preferences.md).
+The historical verification snapshot at the end belongs to the older objective,
+not the corrected method.
 
 ## Inputs and version boundary
 
-Raw observation schema 2 adds `deadline_s`: the requesting task's original
+Raw observation schema 3 retains `deadline_s`: the requesting task's original
 relative deadline D in seconds. This is already known by its owner, not a
 new observation of server truth. The vector encoder also exposes it as
-`task.deadline / FeatureScales.time_s`, increasing dimension from `38+15*M`
-to `39+15*M`. Both raw and encoded schemas are now version 2. No existing
-feature was removed, although later vector indices shift by one.
+`task.deadline / FeatureScales.time_s`. Removing three manual-label one-hots
+changes dimension to `36+15*M`. Both raw and encoded schemas are version 3.
 
 D must not be reconstructed as `slack/(1-elapsed_fraction)`: at the exact
 deadline both numerator and denominator are zero. Using remaining slack as
 the latency denominator would silently change the approved objective.
 Baselines and neural methods now both receive D explicitly. Replay rejects
-encoded schema 1; checkpoint loading rejects the old encoder signature.
+encoded schemas 1/2; checkpoint loading also rejects the old cost contract.
 Old checkpoint/report/configuration files are preserved, never reshaped,
 overwritten, or silently treated as current models. Training new models is
 necessary for the new feature schema; no prior performance result transfers.
 
-The physical scenario plan `development_v1.json` is unchanged. The new
-`learning_pilot_v2.json` explicitly records learning schema 2, raw schema 2,
-encoder schema 2, and baseline-suite version 2. The previous
-`learning_pilot_v1.json` is retained as historical provenance and rejected
-by the current learning-plan loader. Version 2 keeps the same finite pilot
-training budget; it is not a new calibrated paper protocol.
+The active scenario/learning plans are `development_v2.json` and
+`learning_pilot_v3.json`, with explicit cost-model version 2. Historical
+development v1 and learning v1/v2 JSON are preserved unchanged and rejected
+by current loaders. This is not a calibrated paper protocol.
 
 ## Cached service projection (seconds)
 
@@ -40,7 +40,7 @@ cached rates R_up/R_down in bit/s, and cached available CPU f in cycle/s:
 
 For MEC, W_hat is its supplied cached queue-delay estimate, used exactly
 once. For an SV, `W_hat = cached_queue_cycles/f`. Thus the SV projection is
-conservative relative to criticality-first EDF reordering but does not add
+conservative relative to EDF reordering but does not add
 the queue twice. This is the same service estimator used by the latency-only
 rule. CPU free at snapshot time is only a proxy for eventual task allocation;
 it is not a prediction of future shared CPU frequency or a stability theorem.
@@ -69,8 +69,8 @@ The suite factory freezes public **static** max-TX/RX powers and SV kappa
 from scenario prototypes, and validates a homogeneous radio/kappa cohort.
 It reads no battery state, queue, position, mobility, future trace, current
 allocation, or actual completion outcome for the policy's action. Objective
-weights come directly from the common environment configuration, including
-sensitivity changes; they cannot silently differ for this baseline. These
+weights come directly from the common environment configuration, fixed to
+(.60,.25,.15) for active cost model 2. These
 physical-model constants are declared experiment assumptions, not fitted
 on validation outcomes. In the nominal development factory they are 1 W TX,
 .5 W RX, and kappa=1e-28 J/(cycle Hz^2); the old smoke scene uses kappa=1e-27.
@@ -79,19 +79,14 @@ raise an error rather than silently using one node's constants for others.
 
 ## Remaining, action-dependent score
 
-For own current deadline slack d, task energy budget E_budget, criticality
-weight w, and shared weights `(w_T,w_E,w_M,p_D)`:
+For task energy budget E_budget and the common objective coefficients:
 
-`new_miss = 1 if 0 <= d < T_hat else 0`,
+`score(a) = .60*T_hat/D + .25*E_hat/E_budget + .15*1(a==MEC)`.
 
-`score(a) = w * [w_T*T_hat/D + w_E*E_hat/E_budget + w_M*1(a==MEC) + p_D*new_miss]`.
-
-Completion at exactly d is not a predicted miss. If d<0 the actual one-time
-deadline penalty has already been charged by the kernel and is not charged
-again in this **remaining increment**. At d=0, positive future service does
-predict a new miss. Criticality scales the per-task score but does not alter
-physical energy. It alone does not reorder different users' future actions;
-the common simulator still applies criticality-first EDF.
+There is no task-label multiplier or independent deadline penalty, including
+for already overdue tasks. `projected_deadline_miss = (T_hat > slack)` is
+diagnostic only and cannot change this score. Time sensitivity still depends
+on the task's actual D. The common simulator uses label-free preemptive EDF.
 
 Already incurred admission/query latency and energy are sunk and independent
 of the current action, so they are omitted from its ranking. They remain in
@@ -100,7 +95,7 @@ the simulation, and no extra surrogate fallback penalty is introduced.
 For an SV candidate, the estimated MEC-use term is zero, but eventual MEC
 recovery remains possible and is charged by the actual simulator.
 
-The v2 suite enables a cached-contact guard: for a server record age A and
+The current suite retains the cached-contact guard: for a server record age A and
 its predicted contact duration H at generation, `H_remaining=max(0,H-A)`.
 Consider an SV only if `T_hat <= H_remaining`. This is a **heuristic
 constraint**, not a success probability, ground-truth mask, or guaranteed
@@ -110,7 +105,7 @@ The shared action mask is unchanged. The class also supports an explicit
 chosen setting is recorded in every report, not changed after seeing results.
 
 Unavailable service or a failed contact guard receives score infinity,
-regardless of zero objective weights; this avoids `0*inf -> NaN`. Ties use
+without constructing an actual infinite task-cost sample. Ties use
 the smallest observed action index. MEC is retained even when its current
 free-CPU estimate is zero, so all-infinite projections resolve to MEC. The
 kernel's eventual MEC recovery/completion assumptions are unchanged. The
@@ -120,12 +115,13 @@ future cost, one-slot Bellman value, or optimal risk-aware policy.
 
 ## Comparison integration and reproducibility
 
-Version 2 of the fixed-policy suite contains AlwaysMEC, AlwaysV2V,
+Version 3 of the fixed-policy suite contains AlwaysMEC, AlwaysV2V,
 UniformRandom, MinimumEstimatedLatency, and MinimumEstimatedCombinedCost.
 The standard-library analytical smoke/scenario audits and optional neural
 audit use the same factory. Reports include suite version, frozen parameters,
 query protocol, encoder, source/configuration fingerprints, and seeds.
-Report schemas for those comparison runners are now version 2.
+Report schemas for those comparison runners are now version 3, with explicit
+cost model 2 and plain-EDF metadata.
 
 The learning audit additionally reports paired training-seed mean-cost
 contrasts against the combined-cost rule, not only AlwaysMEC, while keeping
@@ -145,19 +141,23 @@ Example development runs (unused output destinations only):
 
 ```powershell
 $env:PYTHONPATH = "src"
-.\.venv\Scripts\python.exe -m experiments.run_scenario_audit --profile nominal --cases 2 --output reports/baseline-suite-v2-nominal.json
-.\.venv\Scripts\python.exe -m experiments.run_learning_audit --output-dir reports/learning-pilot-v2
+.\.venv\Scripts\python.exe -m experiments.run_scenario_audit --profile nominal --cases 2 --output reports/baseline-suite-v3-nominal.json
+.\.venv\Scripts\python.exe -m experiments.run_learning_audit --output-dir reports/learning-pilot-v3
 ```
 
 The latter runs 32 training, 64 learned-validation, and 40 fixed-validation
 episodes (136 total); it never constructs/evaluates test scenarios. Existing
-`reports/learning-pilot-v1` artifacts remain untouched. Reports/checkpoints
+`reports/learning-pilot-v1` and `reports/learning-pilot-v2` artifacts remain untouched. Reports/checkpoints
 stay ignored by Git; actual outcomes, not heuristic score infinities, are
 serialized as finite JSON. Per-policy risk remains episode-based, not pooled
 over correlated tasks or training seeds. These are still tiny synthetic
 development budgets, not a calibrated performance benchmark.
 
-## Local v2 verification (2026-10-24)
+## Historical local v2 verification (2026-10-24, OLD COST MODEL)
+
+The following historical record is retained verbatim. It used the old manual
+labels/deadline surcharge and input schema 2; it is **not performance evidence**
+for the corrected cost model 2 / input schema 3 and must not be reinterpreted.
 
 The unchanged declared four-episode/two-seed pilot completed all 136 planned
 executions, with no admitted task left incomplete and no test scenarios

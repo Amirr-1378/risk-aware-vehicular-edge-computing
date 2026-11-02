@@ -14,6 +14,7 @@ from risk_aware_v2x.environment.observations import RAW_OBSERVATION_SCHEMA_VERSI
 from risk_aware_v2x.scenarios.generator import canonical_json
 from risk_aware_v2x.scenarios.protocol import DevelopmentProtocol, _unique_object
 from .comparison_policies import BASELINE_SUITE_VERSION
+from risk_aware_v2x.contracts import COST_MODEL_VERSION
 
 
 @dataclass(frozen=True, slots=True)
@@ -30,19 +31,21 @@ class LearningProtocol:
     epsilon_schedule: EpsilonSchedule
     feature_scales: FeatureScales
     selection_rule: str = "fixed-final-training-episode"
-    schema_version: int = 2
+    schema_version: int = 3
     purpose: str = "development-learning-audit-not-final-paper-protocol"
     raw_observation_schema_version: int = RAW_OBSERVATION_SCHEMA_VERSION
     encoder_schema_version: int = ENCODED_OBSERVATION_SCHEMA_VERSION
     baseline_suite_version: int = BASELINE_SUITE_VERSION
+    cost_model_version: int = COST_MODEL_VERSION
 
     def __post_init__(self):
         require_positive_int("schema_version", self.schema_version)
-        if self.schema_version != 2 or self.purpose != "development-learning-audit-not-final-paper-protocol":
-            raise ValueError("use development learning protocol v2; v1 input/baseline contracts are not interchangeable")
+        if self.schema_version != 3 or self.purpose != "development-learning-audit-not-final-paper-protocol":
+            raise ValueError("use learning protocol v3 / cost model v2; old objectives are incompatible")
         for name, version in (("raw_observation_schema_version", RAW_OBSERVATION_SCHEMA_VERSION),
                               ("encoder_schema_version", ENCODED_OBSERVATION_SCHEMA_VERSION),
-                              ("baseline_suite_version", BASELINE_SUITE_VERSION)):
+                              ("baseline_suite_version", BASELINE_SUITE_VERSION),
+                              ("cost_model_version", COST_MODEL_VERSION)):
             require_positive_int(name, getattr(self, name))
             if getattr(self, name) != version:
                 raise ValueError(f"unsupported {name}")
@@ -102,6 +105,8 @@ class LearningProtocol:
     @classmethod
     def load(cls, path: str | Path):
         data = json.loads(Path(path).read_text(encoding="utf-8"), object_pairs_hook=_unique_object)
+        if data.get("schema_version") != 3 or data.get("cost_model_version") != COST_MODEL_VERSION:
+            raise ValueError("use learning protocol v3 with explicit cost model v2; historical configs are read-only")
         for name in ("validation_profiles", "agent_seeds", "algorithms"):
             data[name] = tuple(data[name])
         common = dict(data["common_agent"])

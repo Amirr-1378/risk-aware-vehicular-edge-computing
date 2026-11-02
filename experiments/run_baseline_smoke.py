@@ -7,8 +7,10 @@ import platform
 from dataclasses import asdict
 
 from risk_aware_v2x.agents import DecisionAdapter, FeatureScales, ObservationEncoder
+from risk_aware_v2x.environment.evaluation import terminal_metrics
 from .run_environment_smoke import _json_value, build_smoke_scenario
 from .comparison_policies import comparison_policies
+from risk_aware_v2x.contracts import model_contract
 
 
 def run_comparison(*, seed: int = 7, policy_seed: int = 17,
@@ -42,7 +44,7 @@ def run_comparison(*, seed: int = 7, policy_seed: int = 17,
                                 rel_tol=1e-12, abs_tol=1e-12):
                 raise RuntimeError("discounted prefix/transition accounting mismatch")
         reports[name] = {
-            "elapsed_slots": environment.slot, "metrics": environment.metrics(),
+            "elapsed_slots": environment.slot, "metrics": terminal_metrics(environment),
             "accounting": asdict(accounting), "actions": actions_taken,
             "transitions": [{
                 "user_vehicle_id": item.observation.user_vehicle_id,
@@ -54,7 +56,8 @@ def run_comparison(*, seed: int = 7, policy_seed: int = 17,
             } for item in transitions],
         }
     return {
-        "report_schema_version": 2, "purpose": "synthetic policy/adapter integration audit, not a paper benchmark",
+        "report_schema_version": 3, "model_contract": model_contract(),
+        "purpose": "synthetic policy/adapter integration audit, not a paper benchmark",
         "policy_configuration": policy_configuration,
         "environment_seed": seed, "policy_seed": policy_seed,
         "python_version": platform.python_version(), "gamma_per_slot": adapter.gamma_per_slot,

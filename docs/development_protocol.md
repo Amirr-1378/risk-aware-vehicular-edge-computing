@@ -1,4 +1,4 @@
-# Stochastic Development Scenarios and Evaluation Protocol v1
+# Stochastic Development Scenarios and Evaluation Protocol v2
 
 Status: implemented synthetic scenario generation, split/seed planning,
 terminal metrics, descriptive risk, and paired analytical-policy audits.
@@ -6,13 +6,17 @@ terminal metrics, descriptive risk, and paired analytical-policy audits.
 a frozen scientific benchmark.** No learned-policy superiority is established.
 
 The checked-in configuration is
-[`experiments/configs/development_v1.json`](../experiments/configs/development_v1.json).
+[`experiments/configs/development_v2.json`](../experiments/configs/development_v2.json).
 It has a revision and canonical expanded-configuration hash; every report also
 records actual source provenance. Changing the configuration changes its hash.
 This prevents silently mixing different development protocols, but is not a
 claim that final paper hypotheses/budgets have already been preregistered.
 
-## Traffic, workload, and criticality
+The corrected objective and label-free control are defined in
+[objective_and_preferences.md](objective_and_preferences.md). Old configuration
+and outcome artifacts remain unchanged and are not reused as current evidence.
+
+## Traffic, workload, and unlabelled deadlines
 
 Per user and physical slot, independently draw a Bernoulli arrival with
 `p = arrival_rate_per_user_hz * slot_duration_s`, requiring p in [0,1]. There
@@ -29,9 +33,9 @@ realized future trace. Tasks continue past deadlines and recover through MEC
 under the existing kernel assumptions; full drain is required for evaluation.
 
 Input/output sizes are discrete uniform over their inclusive bit intervals.
-CPU cycles/bit are independently continuous uniform. Criticality is sampled
-from an explicit categorical distribution and determines the relative deadline
-and energy normalization budget. All draws use separate per-user/per-arrival
+CPU cycles/bit are independently continuous uniform. An unlabelled categorical
+deadline/energy profile supplies only the relative deadline and positive
+energy normalization budget, with no semantic or priority label. All draws use separate per-user/per-arrival
 named streams, independent of channel and agent/exploration streams.
 
 | Development input | Nominal value/range | Provenance/status |
@@ -41,8 +45,8 @@ named streams, independent of channel and agent/exploration streams.
 | Arrivals per user | 3 task/s; high-load profile 12 task/s | Bernoulli modeling choice |
 | Input / output | 32,000–96,000 / 512–4,096 bit | synthetic workload |
 | Computation density | 300–700 cycle/bit | synthetic workload |
-| Normal/high/critical probabilities | .7/.2/.1 | synthetic labels, not measured event frequencies |
-| Normal/high/critical task deadlines | .6/.3/.15 s | synthetic arrival-to-completion deadlines |
+| Deadline-profile probabilities | .7/.2/.1 | unlabelled synthetic mixture, not event frequencies |
+| Relative task deadlines | .6/.3/.15 s | synthetic arrival-to-completion deadlines |
 | Task energy budget | .1 J | objective normalization, not a drop threshold |
 | User initial speed / braking magnitude | 8–15 m/s / 1.5–2.5 m/s² | bounded brake-to-stop motion |
 | Server speed | 8–25 m/s; fast profile 20–35 m/s | synthetic straight-road cohort |
@@ -52,9 +56,9 @@ named streams, independent of channel and agent/exploration streams.
 
 All numeric workload/resource ranges above are engineering choices for a
 development test, **not numbers extracted from a paper or standards table**.
-Criticality is independent of input size and channel conditions here; labels
-do not represent an implemented obstacle detector or semantic classifier.
-The braking trajectory is likewise not triggered by the sampled task label.
+The deadline/energy draw is independent of size/channel conditions and does
+not represent an implemented obstacle detector or semantic classifier.
+The braking trajectory is not triggered by a task class; none exists.
 
 For independent input size D and computation density eta,
 `E[cycles] = E[D]*E[eta] = 64,000*500 = 32e6`. The manifest reports the nominal
@@ -129,6 +133,8 @@ plus future learned-agent seeds 11/29/47/71/97. Those are development budgets,
 not a power analysis or final scientific sample size. The current audit trains
 no neural policy and does not measure variation across learned-agent seeds.
 
+The new v2 seed namespace and scenario fingerprints distinguish the corrected
+model; historical v1 trajectories/results are not silently re-scored.
 SHA-derived named streams separately determine scenario, physical-channel,
 and random-policy seeds for each `(split, index)`. The finite plan rejects
 role/split collisions. Access order and number of generated profiles do not
@@ -153,15 +159,15 @@ validation selection rules, final scenario distributions, and statistical units.
 
 Terminal metrics require full drain. They include total combined cost/mobile
 energy, final MEC workload share, direct/fallback fractions, on-time fraction,
-critical deadline-miss fraction, latency mean/p95/p99, and query round-trip mean.
-Undefined per-task/per-critical-task averages return JSON null, not a favorable
+overall deadline-miss fraction, tardiness total/mean/max, latency mean/p95/p99,
+and query round-trip mean. Undefined per-task averages return JSON null, not a favorable
 zero. An empty episode still contributes its actual zero episode-total cost.
 Task latency percentiles are descriptive pooled-within-episode diagnostics;
 they are not independent-observation confidence intervals.
 
 The risk random variable for this audit is **undiscounted total combined cost
 of one fixed-arrival-horizon, full-drain episode**. Episode variation includes
-offered traffic and criticality. Every episode has equal weight. CVaR is not
+offered traffic and deadlines. Every episode has equal weight. CVaR is not
 computed by pooling correlated task costs or averaging per-episode CVaRs.
 Mean per-task cost is a separate diagnostic, not the same random variable.
 Agent conditional discounted risk scores remain a distinct learning quantity.
@@ -182,7 +188,7 @@ That later crossed agent-seed/scenario design requires its own uncertainty
 analysis. The need to report run uncertainty rather than only point estimates
 is discussed by [Agarwal et al.](https://arxiv.org/abs/2108.13264).
 
-The current v2 suite includes AlwaysMEC, AlwaysV2V, UniformRandom, supplementary
+The current v3 suite includes AlwaysMEC, AlwaysV2V, UniformRandom, supplementary
 minimum estimated latency, and the new cached combined-cost heuristic. See
 [combined_cost_baseline.md](combined_cost_baseline.md) for its assumptions and
 the own-deadline observation extension. All retain the mandatory cache/query protocol;

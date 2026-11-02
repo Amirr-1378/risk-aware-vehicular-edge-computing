@@ -63,6 +63,8 @@ class LearningProtocolTests(unittest.TestCase):
     def test_old_learning_contract_is_preserved_but_rejected_not_silently_upgraded(self):
         with self.assertRaisesRegex(ValueError, "v2"):
             LearningProtocol.load(DEFAULT_LEARNING_PROTOCOL.with_name("learning_pilot_v1.json"))
+        with self.assertRaisesRegex(ValueError, "v2"):
+            LearningProtocol.load(DEFAULT_LEARNING_PROTOCOL.with_name("learning_pilot_v2.json"))
         learning, _ = fixture_plans()
         for changes in ({"raw_observation_schema_version": 1}, {"encoder_schema_version": 1},
                         {"baseline_suite_version": 1}):
@@ -246,9 +248,10 @@ class LearningAuditTests(unittest.TestCase):
             self.assertEqual(metadata["scenario_protocol_sha256"], self.scenarios.fingerprint)
             self.assertEqual(metadata["source_sha256"], report["provenance"]["source_sha256"])
             self.assertEqual(metadata["selection_rule"], "fixed-final-training-episode")
-            self.assertEqual(metadata["raw_observation_schema_version"], 2)
-            self.assertEqual(metadata["encoder_schema_version"], 2)
-            self.assertEqual(metadata["baseline_suite_version"], 2)
+            self.assertEqual(metadata["raw_observation_schema_version"], 3)
+            self.assertEqual(metadata["encoder_schema_version"], 3)
+            self.assertEqual(metadata["baseline_suite_version"], 3)
+            self.assertEqual(metadata["cost_model_version"], 2)
             self.assertEqual(agent.gradient_updates, 5)
             saved = (output / "report.json").read_bytes()
             json.loads(saved)

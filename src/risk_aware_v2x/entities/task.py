@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from enum import Enum, IntEnum
+from enum import Enum
 from decimal import Decimal
 from typing import ClassVar
 
@@ -14,14 +14,6 @@ from ._validation import (
     require_positive_float,
     require_positive_int,
 )
-
-
-class Criticality(IntEnum):
-    """Task criticality and its primary-objective multiplicative weight."""
-
-    NORMAL = 1
-    HIGH = 2
-    CRITICAL = 4
 
 
 class ExecutorKind(Enum):
@@ -111,7 +103,6 @@ class Task:
     output_size_bits: int
     cpu_cycles_per_bit: float
     deadline_s: float
-    criticality: Criticality
     energy_budget_j: float
 
     status: TaskStatus = field(default=TaskStatus.CREATED, init=False)
@@ -140,7 +131,6 @@ class Task:
             "output_size_bits",
             "cpu_cycles_per_bit",
             "deadline_s",
-            "criticality",
             "energy_budget_j",
         }
     )
@@ -169,8 +159,6 @@ class Task:
             "cpu_cycles_per_bit", self.cpu_cycles_per_bit
         )
         self.deadline_s = require_positive_float("deadline_s", self.deadline_s)
-        if not isinstance(self.criticality, Criticality):
-            raise TypeError("criticality must be a Criticality value")
         self.energy_budget_j = require_positive_float(
             "energy_budget_j", self.energy_budget_j
         )
@@ -197,10 +185,9 @@ class Task:
         duration_s = require_positive_float("slot_duration_s", slot_duration_s)
         return float(Decimal(self.arrival_slot) * Decimal(str(duration_s)) + Decimal(str(self.deadline_s)))
 
-    def scheduling_key(self, slot_duration_s: float) -> tuple[int, float, int, int]:
-        """Return the deterministic criticality-aware EDF ordering key."""
+    def scheduling_key(self, slot_duration_s: float) -> tuple[float, int, int]:
+        """EDF: absolute deadline, arrival slot, then stable task ID; no labels."""
         return (
-            -int(self.criticality),
             self.absolute_deadline_s(slot_duration_s),
             self.arrival_slot,
             self.task_id,

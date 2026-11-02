@@ -16,7 +16,7 @@ scenario. Experiments must select those parameters explicitly.
 | `channel` | Reference-distance path loss, SINR, Shannon rate, thermal noise, optional shadowing and Rayleigh fading, filtered distance inversion |
 | `latency` | Transmission/compute/query time, query response size, bounded slot progress, non-overlapping elapsed-time accounting |
 | `energy` | Radio/idle energy, task CPU energy, query energy, mobile-energy accounting |
-| `queueing` | Criticality-aware EDF, queue workload, slot-boundary preemption and CPU allocation |
+| `queueing` | Label-free EDF, queue workload, slot-boundary preemption and CPU allocation |
 | `randomness` | Independent named `random.Random` streams from one master seed |
 
 Inputs reject booleans where a physical number is required, negative sizes or
@@ -131,7 +131,7 @@ environment must budget energy before executing a step.
 
 ## Queue and CPU scheduling
 
-Priority is criticality descending, absolute deadline ascending, arrival
+The ordering is absolute deadline ascending, arrival
 slot ascending, then task identifier ascending. Queue workload is in CPU
 cycles; the recurrence serves existing workload before adding new arrivals.
 
@@ -144,8 +144,8 @@ previous allocations rather than repeatedly consume the residual capacity.
 
 `reschedule_resource` must run only at slot boundaries. It validates all
 candidate tasks and applies active/waiting membership, allocation, and task
-status together. This permits a critical task to exchange places with an
-active normal task even when the server waiting queue is full, while
+status together. This permits an earlier-deadline task to exchange places
+with an active later-deadline task even when the waiting queue is full, while
 preserving partial CPU work and the selected executor. Resource queue entries
 at this stage contain computation-ready tasks; uploads/downloads belong to
 separate environment phases. Finish/release zero-work tasks before scheduling.

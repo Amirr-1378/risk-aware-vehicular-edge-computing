@@ -8,13 +8,14 @@ from ..entities._validation import (
     require_non_negative_int, require_positive_int,
 )
 from ..models.randomness import RandomStreams
+from ..contracts import COST_MODEL_VERSION
 from .encoding import ENCODED_OBSERVATION_SCHEMA_VERSION, EncodedObservation
 from .transitions import DecisionTransition
 
 
 def validate_observation(observation: EncodedObservation) -> None:
     if not isinstance(observation, EncodedObservation) or observation.schema_version != ENCODED_OBSERVATION_SCHEMA_VERSION:
-        raise ValueError("expected encoded observation schema v2")
+        raise ValueError("expected label-free encoded observation schema v3")
     require_non_negative_int("user_vehicle_id", observation.user_vehicle_id)
     require_non_negative_int("task_id", observation.task_id)
     if not isinstance(observation.values, tuple) or not observation.values:
@@ -30,6 +31,9 @@ def validate_observation(observation: EncodedObservation) -> None:
 def validate_transition(transition: DecisionTransition) -> None:
     if not isinstance(transition, DecisionTransition):
         raise TypeError("replay accepts DecisionTransition records only")
+    require_positive_int("cost_model_version", transition.cost_model_version)
+    if transition.cost_model_version != COST_MODEL_VERSION:
+        raise ValueError("transition cost model mismatch")
     validate_observation(transition.observation)
     require_non_negative_int("start_slot", transition.start_slot)
     require_positive_int("duration_slots", transition.duration_slots)
@@ -60,6 +64,8 @@ def transition_record(transition: DecisionTransition) -> dict:
 
 
 def transition_from_record(record: dict) -> DecisionTransition:
+    if record.get("cost_model_version") != COST_MODEL_VERSION:
+        raise ValueError("transition must explicitly record current cost model")
     def observation(data):
         if data is None:
             return None
@@ -103,14 +109,16 @@ class ReplayBuffer:
         return tuple(self._rng.sample(self._items, size))
 
     def state_dict(self) -> dict:
-        return {"schema_version": 1, "capacity": self.capacity, "next_index": self._next,
+        return {"schema_version": 2, "cost_model_version": COST_MODEL_VERSION,
+                "capacity": self.capacity, "next_index": self._next,
                 "items": [transition_record(item) for item in self._items],
                 "rng_state": self._rng.getstate()}
 
     @classmethod
     def from_state_dict(cls, state: dict) -> "ReplayBuffer":
-        if state["schema_version"] != 1:
-            raise ValueError("unsupported replay schema")
+        if (state.get("schema_version") != 2 or type(state.get("cost_model_version")) is not int
+                or state.get("cost_model_version") != COST_MODEL_VERSION):
+            raise ValueError("unsupported replay cost model/schema")
         result = cls(capacity=state["capacity"], seed=0)
         items = [transition_from_record(record) for record in state["items"]]
         index = require_non_negative_int("next_index", state["next_index"])

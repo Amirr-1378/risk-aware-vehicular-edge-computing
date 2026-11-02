@@ -10,7 +10,7 @@ from risk_aware_v2x.agents.schedules import EpsilonSchedule
 
 
 def replay_sample(task_id=1, *, terminal=False):
-    observation = EncodedObservation(2, (float(task_id), .5), (True, True, False), 1, task_id)
+    observation = EncodedObservation(3, (float(task_id), .5), (True, True, False), 1, task_id)
     following = None if terminal else replace(observation, task_id=task_id + 1)
     return DecisionTransition(observation, 1, 3, 2, 3., 2.9, 0. if terminal else .81,
                               following, terminal)
@@ -100,3 +100,17 @@ class ReplayAndScheduleTests(unittest.TestCase):
             EpsilonSchedule(initial=.1, final=.5)
         with self.assertRaises(ValueError):
             EpsilonSchedule(decay_slots=0)
+
+    def test_replay_and_transition_records_reject_legacy_or_missing_cost_model(self):
+        original = replay_sample()
+        for version in (1, 2., None):
+            state = ReplayBuffer(capacity=3, seed=4).state_dict()
+            state["cost_model_version"] = version
+            with self.assertRaises(ValueError):
+                ReplayBuffer.from_state_dict(state)
+        record = transition_record(original)
+        record.pop("cost_model_version")
+        with self.assertRaises(ValueError):
+            transition_from_record(record)
+        with self.assertRaises(ValueError):
+            transition_record(replace(original, cost_model_version=1))

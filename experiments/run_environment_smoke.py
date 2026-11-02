@@ -11,8 +11,10 @@ import json
 import platform
 from dataclasses import asdict
 
-from risk_aware_v2x.entities import Criticality, MECServer, ServerVehicle, Task, UserVehicle
+from risk_aware_v2x.entities import MECServer, ServerVehicle, Task, UserVehicle
+from risk_aware_v2x.contracts import model_contract
 from risk_aware_v2x.environment import EnvironmentConfig, SlottedEnvironment
+from risk_aware_v2x.environment.evaluation import terminal_metrics
 from risk_aware_v2x.models.channel import LogDistanceChannel
 
 
@@ -54,7 +56,7 @@ def build_smoke_scenario() -> tuple[SlottedEnvironment, dict]:
         task_id=2 * index + user_id, owner_vehicle_id=user_id,
         arrival_slot=8 * index, input_size_bits=30_000 + 10_000 * index,
         output_size_bits=1_000, cpu_cycles_per_bit=500.0,
-        deadline_s=.15, criticality=Criticality.CRITICAL if index == 1 else Criticality.NORMAL,
+        deadline_s=.15,
         energy_budget_j=.1,
     ) for index in range(3) for user_id in (1, 2)]
     env = SlottedEnvironment(config=config, users=users, server_vehicles=servers,
@@ -81,10 +83,11 @@ def run_smoke(*, seed: int = 7, policy: str = "first_cached_server") -> dict:
             actions[user_id] = available[0] if policy == "first_cached_server" and available else 0
         total_returned_cost += sum(env.step(actions).costs.values())
     return {
-        "report_schema_version": 1, "purpose": "synthetic integration smoke test",
+        "report_schema_version": 2, "model_contract": model_contract(),
+        "purpose": "synthetic integration smoke test",
         "seed": seed, "python_version": platform.python_version(), "policy": policy,
         "configuration": asdict(env.config), "scenario": scenario,
-        "elapsed_slots": env.slot, "metrics": env.metrics(),
+        "elapsed_slots": env.slot, "metrics": terminal_metrics(env),
         "sum_returned_cost": total_returned_cost,
         "tasks": [{
             "task_id": task_id, "status": task.status.value,

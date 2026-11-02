@@ -10,7 +10,7 @@ from ..models.latency import computation_time_s, transmission_time_s
 from ..models.mobility import distance_m
 from .config import EnvironmentConfig
 
-RAW_OBSERVATION_SCHEMA_VERSION = 2
+RAW_OBSERVATION_SCHEMA_VERSION = 3
 
 
 @dataclass(frozen=True, slots=True)
@@ -24,7 +24,7 @@ class ServerObservation:
 
 @dataclass(frozen=True, slots=True)
 class OffloadingObservation:
-    """Raw schema v2; None server slots are padding, MEC is always action zero.
+    """Label-free raw schema v3; None slots are padding, MEC is action zero.
 
     Physical suffixes specify SI units. No live server object or future trace
     is referenced. The learning adapter encodes this received information only.
@@ -39,7 +39,6 @@ class OffloadingObservation:
     remaining_cpu_cycles: float
     deadline_s: float
     deadline_slack_s: float
-    criticality_weight: int
     energy_budget_j: float
     elapsed_deadline_fraction: float
     user_battery_fraction: float
@@ -118,7 +117,7 @@ def build_observation(
         task.required_cpu_cycles, task.remaining_cpu_cycles,
         task.deadline_s,
         task.absolute_deadline_s(config.slot_duration_s) - current_time_s,
-        int(task.criticality), task.energy_budget_j,
+        task.energy_budget_j,
         (current_time_s - arrival_s) / task.deadline_s,
         user.battery_energy_j / user.battery_capacity_j, user.speed_mps, user.heading_rad,
         distance_m(user.position_m, mec.position_m), user.tx_power_w / user.max_tx_power_w,

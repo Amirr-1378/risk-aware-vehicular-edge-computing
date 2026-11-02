@@ -1,4 +1,4 @@
-"""Criticality-aware EDF planning and explicit CPU queue workload in cycles."""
+"""Label-free EDF planning and explicit CPU queue workload in cycles."""
 
 from __future__ import annotations
 
@@ -16,7 +16,7 @@ from ..entities._validation import (
 
 
 def ordered_tasks(tasks: Iterable[Task], slot_duration_s: float) -> tuple[Task, ...]:
-    """Order by criticality, absolute deadline, arrival slot, then stable task ID."""
+    """Order by absolute deadline, arrival slot, then stable task ID."""
     duration = require_positive_float("slot_duration_s", slot_duration_s)
     items = tuple(tasks)
     if not all(isinstance(task, Task) for task in items):
@@ -88,7 +88,7 @@ def reschedule_resource(
 
     This function must be called by the environment only at slot boundaries.
     All validation happens before task/resource mutation. Queue/active exchange
-    is applied together, so a critical task can preempt through a full waiting
+    is applied together, so an earlier-deadline task can preempt through a full waiting
     queue without needing a temporary extra queue slot.
     """
     if isinstance(resource, MECServer):

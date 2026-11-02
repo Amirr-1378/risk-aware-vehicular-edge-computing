@@ -12,6 +12,7 @@ from dataclasses import dataclass, field
 from ..entities._validation import require_fraction
 from ..environment import OffloadingObservation, SlottedEnvironment
 from .encoding import EncodedObservation, ObservationEncoder
+from ..contracts import COST_MODEL_VERSION
 
 
 @dataclass(frozen=True, slots=True)
@@ -25,6 +26,7 @@ class DecisionTransition:
     bootstrap_discount: float
     next_observation: EncodedObservation | None
     terminated: bool
+    cost_model_version: int = COST_MODEL_VERSION
 
     @property
     def discounted_reward(self) -> float:
