@@ -60,6 +60,10 @@ The approved design baseline is documented in:
   scenarios, parameter provenance/gaps, split/seed plan, metrics, and paired audits.
 - [`docs/learning_development_protocol.md`](docs/learning_development_protocol.md):
   bounded multi-seed training, final-model validation, pairing, and statistical units.
+- [`docs/learning_diagnostics.md`](docs/learning_diagnostics.md): read-only
+  per-model development summaries, aggregation units, and the Colab main-training boundary;
+- [`docs/greedy_improvement_plan.md`](docs/greedy_improvement_plan.md): offline
+  action comparisons, owner/system credit alignment, and evidence-based development priorities;
 - [`docs/combined_cost_baseline.md`](docs/combined_cost_baseline.md): combined-cost
   heuristic formulas, public calibration assumptions, and input/baseline version 2.
 
@@ -80,8 +84,17 @@ The implementation milestones are:
    explicit own-deadline inputs, and versioned comparison integration;
 10. **complete:** approved label-free three-term cost revision, plain EDF,
    sigmoid preference diagnostics, schema/checkpoint guards, and regression tests;
-11. **next:** empirical calibration, larger learned training, frozen paper
+11. **complete:** read-only development diagnostics, per-model validation cost
+   risk, task/workload aggregation, and training-clock/update consistency checks;
+   the [complete cost-model-2 pilot](docs/development_pilot_20261117.md) is recorded
+   as development evidence, with no main-training/convergence claim;
+12. **complete:** offline action-audit infrastructure with cloned RNG/state,
+   greedy continuation, and separate owner/system cost comparisons;
+13. **next:** empirical calibration, learning-objective alignment, larger learned training, frozen paper
    protocols, adapted paper/query-free MEC baselines, and final evaluation.
+
+Main training is planned for Google Colab. Notify Amir before starting that
+milestone; local training runs are bounded development checks.
 
 ## Repository layout
 

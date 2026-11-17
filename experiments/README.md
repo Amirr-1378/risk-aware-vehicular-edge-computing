@@ -89,3 +89,34 @@ The canonical control contract is
 QR-CVaR keeps lambda=.5; positive `sigmoid_beta=1` only controls the reported
 MEC preference curve. Evaluation still chooses masked argmin J, never samples
 from sigmoid values, and never transforms actual costs/TD targets with them.
+
+`summarize_learning_audit.py` reads a completed v3 report without importing
+Torch or running training. It writes per-model/per-profile cost risk, task
+latency/energy/miss rates, episode-mean workload shares, and training-update
+traces to a new directory, preserving input/source/protocol hashes:
+
+```text
+python -m experiments.summarize_learning_audit reports/learning-pilot-v3/report.json --output-dir reports/NEW-diagnostics
+```
+
+It rejects missing runs, incompatible contracts, mismatched paired scenes,
+incomplete drain, and validation updates. Seeds are not pooled into a policy
+CVaR; fixed-policy results are not duplicated across agent seeds. The complete
+v3 pilot remains development training. Main training must run in Colab, and
+Amir must be notified before that milestone starts. See
+[`../docs/learning_diagnostics.md`](../docs/learning_diagnostics.md).
+
+`run_action_audit.py` performs offline action comparisons on a declared prefix
+of unchanged greedy validation trajectories. Each branch changes one user's
+action, fixes other users' simultaneous actions, and then fully drains with
+greedy continuation. It preserves cloned state/RNGs and records owner versus
+global cost differences. There is no neural dependency, training or test option:
+
+```text
+python -m experiments.run_action_audit --profiles nominal high_load --cases 2 --decisions-per-episode 8 --output reports/NEW-action-audit/report.json
+```
+
+Ex-post minima use hidden future trajectories for offline diagnosis. They are
+not deployable decisions, expected Q values, CVaR estimates, or improvement
+bounds. Gains at different forks cannot be added. See
+[`../docs/greedy_improvement_plan.md`](../docs/greedy_improvement_plan.md).
