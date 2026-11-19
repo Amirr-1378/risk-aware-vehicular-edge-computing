@@ -64,6 +64,8 @@ The approved design baseline is documented in:
   per-model development summaries, aggregation units, and the Colab main-training boundary;
 - [`docs/greedy_improvement_plan.md`](docs/greedy_improvement_plan.md): offline
   action comparisons, owner/system credit alignment, and evidence-based development priorities;
+- [`docs/team_returns.md`](docs/team_returns.md): independent User Vehicle
+  actors, opt-in cooperative-return records, and global/per-user accounting rules;
 - [`docs/combined_cost_baseline.md`](docs/combined_cost_baseline.md): combined-cost
   heuristic formulas, public calibration assumptions, and input/baseline version 2.
 
@@ -90,11 +92,16 @@ The implementation milestones are:
    as development evidence, with no main-training/convergence claim;
 12. **complete:** offline action-audit infrastructure with cloned RNG/state,
    greedy continuation, and separate owner/system cost comparisons;
-13. **next:** empirical calibration, learning-objective alignment, larger learned training, frozen paper
+13. **complete:** opt-in team-return interface and matched accounting tests
+   for independent local-observation actors; neural integration remains pending;
+14. **next:** versioned team-return learner integration, empirical calibration, larger learned training, frozen paper
    protocols, adapted paper/query-free MEC baselines, and final evaluation.
 
 Main training is planned for Google Colab. Notify Amir before starting that
 milestone; local training runs are bounded development checks.
+Each User Vehicle selects its own destination; MEC supplies information only.
+Remind Amir about commit/push at each completed verified milestone before
+advancing; pushing still requires explicit user authorization.
 
 ## Repository layout
 

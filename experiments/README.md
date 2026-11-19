@@ -120,3 +120,18 @@ Ex-post minima use hidden future trajectories for offline diagnosis. They are
 not deployable decisions, expected Q values, CVaR estimates, or improvement
 bounds. Gains at different forks cannot be added. See
 [`../docs/greedy_improvement_plan.md`](../docs/greedy_improvement_plan.md).
+
+`run_team_return_audit.py` verifies an opt-in cooperative-return data interface
+while keeping decisions independent in each User Vehicle. Five fixed policies
+run through matched individual/team interfaces with identical local inputs,
+actions and physics; global ledger costs are counted once, while per-user
+team-return intervals may overlap and are never summed as episode cost:
+
+```text
+python -m experiments.run_team_return_audit --output reports/NEW-team-return-audit/report.json
+```
+
+There is no neural training, controller at MEC, extra actor input or test
+option. Current neural runners still learn individual returns. The new team
+records have a distinct type/scope and are rejected by legacy replay; see
+[`../docs/team_returns.md`](../docs/team_returns.md) before learner integration.

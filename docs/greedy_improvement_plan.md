@@ -8,6 +8,11 @@ remains a later Colab milestone, with notice to Amir before execution.
 The [executed 2026-11-17 audit](action_audit_20261117.md) records its full scope,
 descriptive results, an owner/system conflict example and source fingerprints.
 
+On 2026-11-20 Amir fixed the deployment choice: User Vehicles decide
+independently and MEC only provides information. The opt-in
+[team-return interface](team_returns.md) now prepares shared-cost training
+records without changing local actor observations or the active learner.
+
 ## What the completed pilot establishes
 
 The [development pilot](development_pilot_20261117.md) produced only 75
