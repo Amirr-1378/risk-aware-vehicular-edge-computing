@@ -45,6 +45,65 @@ def _same_state(a, b):
     return a == b
 
 
+def _fit_model(*, learning, train_scenes, train_keys, val_scenes, val_keys, encoder,
+               scope, algorithm, seed, output, initializations, experiment_metadata,
+               checkpoint_prefix="checkpoints", behavior_factory=None):
+    """One fixed-budget final-model run; behavior can change training collection only."""
+    kind = TeamNeuralCostAgent if scope == "team" else NeuralCostAgent
+    agent = kind(learning.agent_configuration(algorithm), encoder, seed=seed)
+    initial = model_fingerprint(agent)
+    pair = algorithm, seed
+    if pair in initializations and initial != initializations[pair]:
+        raise RuntimeError("matched experiments have different initial weights")
+    initializations[pair] = initial
+    training, clock = [], 0
+    for index, (key, scene) in enumerate(zip(train_keys, train_scenes, strict=True)):
+        policy = None if behavior_factory is None else behavior_factory(index, scene, key)
+        episode, clock = _episode(scene, key, encoder, agent, learning, clock,
+                                  training=True, return_scope=scope, behavior_policy=policy)
+        training.append(episode)
+    offered = sum(len(scene.tasks) for scene in train_scenes)
+    updates = max(0, offered - max(learning.common_agent.batch_size, learning.common_agent.learning_starts) + 1)
+    if agent.seen_transitions != offered or agent.gradient_updates != updates:
+        raise RuntimeError("matched task/transition/update budget violated; never drop a failed task")
+    final = model_fingerprint(agent)
+    checkpoint = f"{checkpoint_prefix}/{scope}/{algorithm}-seed-{seed}-final.pt"
+    metadata = {**experiment_metadata, "model_contract": model_contract(),
+        "return_scope": scope, "learning_return_contract": agent.learning_return_contract(),
+        "learning_protocol_sha256": learning.fingerprint, "selection_rule": learning.selection_rule,
+        "completed_training_episodes": learning.training_episodes, "training_slots": clock,
+        "model_sha256": final, "initial_model_sha256": initial,
+        "training_scenarios": [scene.fingerprint for scene in train_scenes]}
+    if "training_behavior_contract" in metadata:
+        count = metadata["training_behavior_contract"]["teacher_episodes"]
+        metadata["teacher_completed_at_training_slot"] = training[count - 1]["training_slots_after"] if count else 0
+        metadata["teacher_action_count"] = sum(e.get("training_behavior", {}).get("actions", 0) for e in training)
+        metadata["behavior_phase_at_checkpoint"] = "learned_epsilon"
+    if output is not None:
+        agent.save_checkpoint(output / checkpoint, run_metadata=metadata)
+    frozen = _training_state(agent)
+    validation = {}
+    for profile, scenes in val_scenes.items():
+        validation[profile] = []
+        for key, scene in zip(val_keys, scenes, strict=True):
+            # There is intentionally no behavior policy on ANY evaluation call.
+            episode, unchanged = _episode(scene, key, encoder, agent, learning, clock,
+                                          training=False, return_scope=scope)
+            if unchanged != clock:
+                raise RuntimeError("validation advanced the training clock")
+            validation[profile].append(episode)
+    if not _same_state(frozen, _training_state(agent)):
+        raise RuntimeError("validation mutated model, target, optimizer, replay, RNG or counters")
+    return {"return_scope": scope, "learning_return_contract": agent.learning_return_contract(),
+        "algorithm": algorithm, "agent_seed": seed, "agent_configuration": asdict(agent.config),
+        "initial_model_sha256": initial, "model_sha256": final, "training_slots": clock,
+        "seen_transitions": agent.seen_transitions, "gradient_updates": agent.gradient_updates,
+        "target_synchronizations": sum(u["target_synchronized"] for e in training for u in e["updates"]),
+        "epsilon_at_training_end": learning.epsilon_schedule.value(clock),
+        "replay_size": len(agent.replay), "training": training, "validation": validation,
+        "checkpoint": checkpoint if output is not None else None}
+
+
 def run_return_scope_audit(*, protocol: ReturnScopeProtocol | None = None,
                            scenarios: DevelopmentProtocol | None = None,
                            output_directory: str | Path | None = None) -> dict:
@@ -72,55 +131,16 @@ def run_return_scope_audit(*, protocol: ReturnScopeProtocol | None = None,
     warmup = max(learning.common_agent.batch_size, learning.common_agent.learning_starts)
     expected_updates = max(0, offered_train_tasks - warmup + 1)
     initializations, runs = {}, []
-    kinds = {"individual": NeuralCostAgent, "team": TeamNeuralCostAgent}
     with deterministic_cpu():
         for scope in plan.return_scopes:
             for algorithm in learning.algorithms:
                 for seed in learning.agent_seeds:
-                    agent = kinds[scope](learning.agent_configuration(algorithm), encoder, seed=seed)
-                    initial = model_fingerprint(agent)
-                    pair = algorithm, seed
-                    if pair in initializations and initial != initializations[pair]:
-                        raise RuntimeError("matched return scopes have different initial weights")
-                    initializations[pair] = initial
-                    training, clock = [], 0
-                    for key, scene in zip(train_keys, train_scenes, strict=True):
-                        episode, clock = _episode(scene, key, encoder, agent, learning, clock,
-                                                  training=True, return_scope=scope)
-                        training.append(episode)
-                    if agent.seen_transitions != offered_train_tasks or agent.gradient_updates != expected_updates:
-                        raise RuntimeError("matched task/transition/update budget violated; never drop a failed task")
-                    final = model_fingerprint(agent)
-                    checkpoint = f"checkpoints/{scope}/{algorithm}-seed-{seed}-final.pt"
-                    metadata = {"run_kind": "stochastic-return-scope-audit-v1", "model_contract": model_contract(),
-                        "return_scope": scope, "learning_return_contract": agent.learning_return_contract(),
-                        "return_scope_protocol_sha256": plan.fingerprint, "learning_protocol_sha256": learning.fingerprint,
+                    runs.append(_fit_model(learning=learning, train_scenes=train_scenes, train_keys=train_keys,
+                        val_scenes=val_scenes, val_keys=val_keys, encoder=encoder, scope=scope, algorithm=algorithm,
+                        seed=seed, output=output, initializations=initializations, experiment_metadata={
+                        "run_kind": "stochastic-return-scope-audit-v1", "return_scope_protocol_sha256": plan.fingerprint,
                         "scenario_protocol_sha256": scenes_plan.fingerprint, "source_sha256": provenance["source_sha256"],
-                        "selection_rule": learning.selection_rule, "completed_training_episodes": learning.training_episodes,
-                        "training_slots": clock, "model_sha256": final, "initial_model_sha256": initial,
-                        "training_scenarios": [scene.fingerprint for scene in train_scenes]}
-                    if output is not None:
-                        agent.save_checkpoint(output / checkpoint, run_metadata=metadata)
-                    frozen = _training_state(agent)
-                    validation = {}
-                    for profile, scenes in val_scenes.items():
-                        validation[profile] = []
-                        for key, scene in zip(val_keys, scenes, strict=True):
-                            episode, unchanged = _episode(scene, key, encoder, agent, learning, clock,
-                                                          training=False, return_scope=scope)
-                            if unchanged != clock:
-                                raise RuntimeError("validation advanced the training clock")
-                            validation[profile].append(episode)
-                    if not _same_state(frozen, _training_state(agent)):
-                        raise RuntimeError("validation mutated model, target, optimizer, replay, RNG or counters")
-                    runs.append({"return_scope": scope, "learning_return_contract": agent.learning_return_contract(),
-                        "algorithm": algorithm, "agent_seed": seed, "agent_configuration": asdict(agent.config),
-                        "initial_model_sha256": initial, "model_sha256": final, "training_slots": clock,
-                        "seen_transitions": agent.seen_transitions, "gradient_updates": agent.gradient_updates,
-                        "target_synchronizations": sum(u["target_synchronized"] for e in training for u in e["updates"]),
-                        "epsilon_at_training_end": learning.epsilon_schedule.value(clock),
-                        "replay_size": len(agent.replay), "training": training, "validation": validation,
-                        "checkpoint": checkpoint if output is not None else None})
+                    }))
         runtime = runtime_metadata()
     analytical = {profile: run_scenario_audit(protocol=scenes_plan, profile=profile, split="validation",
                                              cases=learning.validation_cases) for profile in learning.validation_profiles}

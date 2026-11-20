@@ -156,7 +156,8 @@ not silently replace its original formulas or label it our proposed method.
 | Actual objective / metadata cost model | 2 |
 | Task specification | label-free (old criticality constructor rejected) |
 | Raw / encoded observations | 3 / 3, dimension `36+15*M` (96 at M=4) |
-| Replay / checkpoint containers | 2 / 2, explicit cost-model guard |
+| Individual replay / checkpoint containers | 2 / 2, explicit cost-model guard |
+| Optional team replay / checkpoint containers | 1 / 3, explicit team-return contract |
 | Scenario spec / development plan | 2 / 2 |
 | Learning plan / fixed-policy suite | 3 / 3 |
 
@@ -178,6 +179,13 @@ improvement. Parameter/workload calibration, sufficient independent runs,
 quantile-tail calibration, query-free MEC and the faithful paper comparison
 remain scientific work. No new physical failure model, local execution,
 partial offloading, learned query timing or paper-baseline rewrite is added.
+
+An [optional greedy behavior warmup](behavior_warmup_development.md) changes
+only the source of actions in a fixed early training prefix. It preserves
+this cost, QR loss/TD target, alpha/lambda, input masks and learned deployment
+selector. It is explicitly a separate training-protocol variant, with an
+ordinary-training control; evaluation cannot use the teacher. It is not an
+automatic change to the approved method.
 
 Implementation verification, exact run scope, source hashes and remaining
 scientific limits are recorded in

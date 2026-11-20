@@ -10,6 +10,7 @@ import numpy
 import torch
 from risk_aware_v2x.environment.evaluation import terminal_metrics
 from risk_aware_v2x.agents.team_returns import TeamReturnAdapter, team_return_contract
+from risk_aware_v2x.baselines import MinimumEstimatedCombinedCost
 
 
 @contextmanager
@@ -39,7 +40,7 @@ def runtime_metadata() -> dict:
 
 
 def run_episode(adapter, agent, *, environment_seed: int, training: bool,
-                schedule, training_slots: int) -> tuple[dict, int]:
+                schedule, training_slots: int, behavior_policy=None) -> tuple[dict, int]:
     """Choose the complete user batch before service/updates; fully drain.
 
     One update per newly eligible transition, after all transitions in that
@@ -47,6 +48,11 @@ def run_episode(adapter, agent, *, environment_seed: int, training: bool,
     consume exploration/replay RNG. Costs include the pre-decision prefix.
     """
     team = isinstance(adapter, TeamReturnAdapter)
+    if behavior_policy is not None:
+        if training is not True:
+            raise ValueError("a teacher behavior policy is forbidden during evaluation")
+        if type(behavior_policy) is not MinimumEstimatedCombinedCost:
+            raise TypeError("only the declared cached combined-cost greedy training behavior is supported")
     if agent.learning_return_contract() != (team_return_contract() if team else None):
         raise ValueError("adapter and agent learning return scopes differ")
     adapter.reset(seed=environment_seed)
@@ -56,9 +62,13 @@ def run_episode(adapter, agent, *, environment_seed: int, training: bool,
     agent.online.train(training)
     try:
         while not adapter.environment.terminated:
-            epsilon = schedule.value(training_slots) if training else 0.
-            actions = {user_id: agent.act(observation, epsilon=epsilon)
-                       for user_id, observation in sorted(adapter.observations.items())}
+            scheduled_epsilon = schedule.value(training_slots) if training else 0.
+            epsilon = scheduled_epsilon if behavior_policy is None else 0.
+            actions = ({user_id: agent.act(observation, epsilon=epsilon)
+                        for user_id, observation in sorted(adapter.observations.items())}
+                       if behavior_policy is None else
+                       {user_id: behavior_policy.act(observation)
+                        for user_id, observation in sorted(adapter.raw_observations.items())})
             preferences = {} if training else {user_id: agent.preference_diagnostics(observation)
                 for user_id, observation in sorted(adapter.observations.items())}
             if any(preferences[user_id]["selected_action"] != action for user_id, action in actions.items()
@@ -67,7 +77,10 @@ def run_episode(adapter, agent, *, environment_seed: int, training: bool,
             actions_taken.extend({"slot": adapter.environment.slot, "user_vehicle_id": user_id,
                                   "task_id": adapter.observations[user_id].task_id,
                                   "action": action, "epsilon": epsilon,
-                                  "preference_diagnostics": preferences.get(user_id)}
+                                  "preference_diagnostics": preferences.get(user_id),
+                                  **({"behavior_source": "cached_combined_cost_greedy",
+                                      "scheduled_epsilon": scheduled_epsilon,
+                                      "scheduled_epsilon_applied": False} if behavior_policy is not None else {})}
                                  for user_id, action in actions.items())
             result = adapter.step(actions)
             transition_count += len(result.transitions)
@@ -109,10 +122,14 @@ def run_episode(adapter, agent, *, environment_seed: int, training: bool,
                                     rel_tol=1e-12, abs_tol=1e-12):
                     raise RuntimeError("team actor view lost part of its global return")
         team_fields = {"team_accounting": aggregate, "learning_return_contract": team_return_contract()}
+    behavior_fields = ({"training_behavior": {"source": "cached_combined_cost_greedy",
+        "parameters": asdict(behavior_policy.parameters), "actions": len(actions_taken),
+        "scheduled_epsilon_applied": False, "learner_exploration_rng_consumed": False}}
+        if behavior_policy is not None else {})
     return {
         "environment_seed": environment_seed, "training": training,
         "training_slots_before": slot_start, "training_slots_after": training_slots,
         "elapsed_slots": adapter.environment.slot, "transition_count": transition_count,
         "updates": losses, "metrics": terminal_metrics(adapter.environment),
-        "accounting": accounting, "actions": actions_taken, **team_fields,
+        "accounting": accounting, "actions": actions_taken, **team_fields, **behavior_fields,
     }, training_slots

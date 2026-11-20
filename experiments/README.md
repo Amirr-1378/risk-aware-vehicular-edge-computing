@@ -170,3 +170,22 @@ per-model risk and paired scope differences. No seed pooling, significance,
 test access, adaptive stopping or sweep resume is implemented. This remains
 bounded synthetic development, not main Colab training. See
 [`../docs/return_scope_development.md`](../docs/return_scope_development.md).
+
+`run_behavior_warmup_audit.py` adds a separately named optional training-
+behavior ablation. Its `greedy_warmup` arm uses ordinary causal cached greedy
+actions only during the first two of the same 20 training episodes, followed
+by ordinary learned epsilon behavior. The standard arm remains unchanged.
+QR/CVaR losses/targets, actual costs, masks and learned evaluation stay the same:
+
+```text
+python -m experiments.run_behavior_warmup_audit --output-dir reports/NEW-behavior-warmup-pilot
+```
+
+Both variants receive identical total task/update budgets and initial weight
+streams; no extra teacher episodes or offline updates are added. Teacher
+parameters, action source, scheduled-but-unused epsilon and the phase clock
+are recorded. Runtime rejects teachers at evaluation. The new protocol/loader
+binds behavior variant and checkpoint phase; existing configurations/checkpoints
+and default collection remain supported. This experiment does not implicitly
+adopt a new final paper method. See
+[`../docs/behavior_warmup_development.md`](../docs/behavior_warmup_development.md).

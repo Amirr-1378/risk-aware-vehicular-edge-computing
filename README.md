@@ -68,6 +68,8 @@ The approved design baseline is documented in:
   actors, opt-in cooperative-return records, and global/per-user accounting rules;
 - [`docs/return_scope_development.md`](docs/return_scope_development.md): matched
   stochastic individual/team-return training, paired episode costs and fixed budgets;
+- [`docs/behavior_warmup_development.md`](docs/behavior_warmup_development.md):
+  optional causal training behavior warmup, core-method boundaries and matched budgets;
 - [`docs/combined_cost_baseline.md`](docs/combined_cost_baseline.md): combined-cost
   heuristic formulas, public calibration assumptions, and input/baseline version 2.
 
@@ -100,7 +102,9 @@ The implementation milestones are:
    contracts, frozen evaluation, and exact episode-boundary resume verification;
 15. **complete:** versioned stochastic return-scope ablation infrastructure,
    matched model/scene budgets, frozen-state checks and descriptive comparisons;
-16. **next:** empirical calibration, informative learning studies, frozen paper
+16. **complete:** opt-in greedy training-behavior warmup infrastructure with
+   unchanged core QR/CVaR math, teacher-free evaluation and matched ordinary-training controls;
+17. **next:** empirical calibration, informative learning studies, frozen paper
    protocols, adapted paper/query-free MEC baselines, and final evaluation.
 
 Main training is planned for Google Colab. Notify Amir before starting that
