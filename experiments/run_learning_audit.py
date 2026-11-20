@@ -10,6 +10,7 @@ from statistics import stdev
 
 from risk_aware_v2x.agents import DecisionAdapter, ObservationEncoder
 from risk_aware_v2x.agents.neural import NeuralCostAgent, encoder_signature
+from risk_aware_v2x.agents.team_returns import TeamReturnAdapter
 from risk_aware_v2x.environment.evaluation import terminal_metrics
 from risk_aware_v2x.models.randomness import RandomStreams
 from risk_aware_v2x.risk.statistics import episode_cost_summary, paired_mean_interval
@@ -33,9 +34,12 @@ def model_fingerprint(agent: NeuralCostAgent) -> str:
     return digest.hexdigest()
 
 
-def _episode(scene, seeds, encoder, agent, learning, training_slots, *, training):
+def _episode(scene, seeds, encoder, agent, learning, training_slots, *, training, return_scope="individual"):
+    if return_scope not in ("individual", "team"):
+        raise ValueError("unknown learning return scope")
     pristine = scene.fingerprint
-    adapter = DecisionAdapter(scene.environment(), encoder, gamma_per_slot=agent.config.gamma_per_slot)
+    adapter_type = TeamReturnAdapter if return_scope == "team" else DecisionAdapter
+    adapter = adapter_type(scene.environment(), encoder, gamma_per_slot=agent.config.gamma_per_slot)
     report, clock = run_episode(adapter, agent, environment_seed=seeds.channel_seed,
                                 training=training, schedule=learning.epsilon_schedule,
                                 training_slots=training_slots)

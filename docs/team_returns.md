@@ -150,9 +150,11 @@ Reports retain original individual `accounting` and a separate unique global
 Greedy evaluation does not alter weights, replay, optimizer, exploration RNG
 or training clock. All four existing algorithms support the team path.
 
-The next milestone is an explicit stochastic individual/team-return ablation
-protocol and an informative fixed development budget. The four-episode smoke
-check is not a performance comparison or convergence study. Shared costs may
+The explicit [stochastic return-scope ablation](return_scope_development.md)
+now supplies a shared development budget and matched comparisons. Its
+[execution record](return_scope_validation_20261120.md) did not establish a
+uniform team-return advantage or close the observed greedy mean-cost gap.
+The four-episode smoke check is not a performance comparison. Shared costs may
 increase variance and do not prove global or static-CVaR optimality. The
 evaluation objective remains the physical task sum. Additional independent
 data, calibration, missing baselines and a frozen evaluation protocol remain

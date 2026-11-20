@@ -151,3 +151,22 @@ The inherited DQN/QR loss, mask/risk/argmin and local actor input are unchanged.
 Reports use unique physical team accounting, not summed overlapping replay
 costs. This is a bounded mechanics check, not main training or evidence of
 beating greedy. See [`../docs/team_learning_validation_20261120.md`](../docs/team_learning_validation_20261120.md).
+
+`run_return_scope_audit.py` implements the explicit paired stochastic return-
+scope protocol in `configs/return_scope_pilot_v1.json`: QR/QR-CVaR x individual/
+team returns x seeds11/29, with 20 shared nominal training scenes and four
+validation cases per known profile. All controls/hyperparameters are shared;
+the current v3 learning JSON remains unchanged. Run with a new output directory:
+
+```text
+python -m experiments.run_return_scope_audit --output-dir reports/NEW-return-scope-pilot
+```
+
+Checkpoints are saved before frozen greedy validation. Complete model-state
+guards, pristine scene pairing, exact offered-task/update budgets and exclusive
+outputs are enforced. Fixed policies run once per validation scene, not per
+scope/seed. `report.json` includes analytical baselines; `summary.md` compares
+per-model risk and paired scope differences. No seed pooling, significance,
+test access, adaptive stopping or sweep resume is implemented. This remains
+bounded synthetic development, not main Colab training. See
+[`../docs/return_scope_development.md`](../docs/return_scope_development.md).

@@ -66,6 +66,8 @@ The approved design baseline is documented in:
   action comparisons, owner/system credit alignment, and evidence-based development priorities;
 - [`docs/team_returns.md`](docs/team_returns.md): independent User Vehicle
   actors, opt-in cooperative-return records, and global/per-user accounting rules;
+- [`docs/return_scope_development.md`](docs/return_scope_development.md): matched
+  stochastic individual/team-return training, paired episode costs and fixed budgets;
 - [`docs/combined_cost_baseline.md`](docs/combined_cost_baseline.md): combined-cost
   heuristic formulas, public calibration assumptions, and input/baseline version 2.
 
@@ -96,7 +98,9 @@ The implementation milestones are:
    for independent local-observation actors;
 14. **complete:** team-compatible neural learning, typed replay and checkpoint
    contracts, frozen evaluation, and exact episode-boundary resume verification;
-15. **next:** stochastic return-scope ablation, empirical calibration, larger learned training, frozen paper
+15. **complete:** versioned stochastic return-scope ablation infrastructure,
+   matched model/scene budgets, frozen-state checks and descriptive comparisons;
+16. **next:** empirical calibration, informative learning studies, frozen paper
    protocols, adapted paper/query-free MEC baselines, and final evaluation.
 
 Main training is planned for Google Colab. Notify Amir before starting that
