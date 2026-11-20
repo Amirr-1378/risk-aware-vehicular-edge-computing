@@ -9,6 +9,7 @@ from importlib.metadata import distributions
 import numpy
 import torch
 from risk_aware_v2x.environment.evaluation import terminal_metrics
+from risk_aware_v2x.agents.team_returns import TeamReturnAdapter, team_return_contract
 
 
 @contextmanager
@@ -45,6 +46,9 @@ def run_episode(adapter, agent, *, environment_seed: int, training: bool,
     slot have been inserted. Evaluation does not advance training slots or
     consume exploration/replay RNG. Costs include the pre-decision prefix.
     """
+    team = isinstance(adapter, TeamReturnAdapter)
+    if agent.learning_return_contract() != (team_return_contract() if team else None):
+        raise ValueError("adapter and agent learning return scopes differ")
     adapter.reset(seed=environment_seed)
     losses, actions_taken, transition_count = [], [], 0
     slot_start = training_slots
@@ -80,7 +84,7 @@ def run_episode(adapter, agent, *, environment_seed: int, training: bool,
                         losses.append(asdict(update))
     finally:
         agent.online.train(was_training)
-    accounting = asdict(adapter.accounting)
+    accounting = asdict(adapter.individual_accounting if team else adapter.accounting)
     for user_id in accounting["total_cost"]:
         for total_key, prefix_key, closed_key in (
             ("total_cost", "prefix_cost", "closed_transition_cost"),
@@ -90,10 +94,25 @@ def run_episode(adapter, agent, *, environment_seed: int, training: bool,
                                 accounting[prefix_key][user_id] + accounting[closed_key][user_id],
                                 rel_tol=1e-12, abs_tol=1e-12):
                 raise RuntimeError("learning run lost prefix or decision-interval costs")
+    team_fields = {}
+    if team:
+        aggregate = asdict(adapter.accounting)
+        for total, prefix, closed in (("total_cost", "prefix_cost", "closed_interval_cost"),
+                                      ("discounted_total_cost", "discounted_prefix_cost", "discounted_closed_interval_cost")):
+            if (not math.isclose(aggregate[total], aggregate[prefix] + aggregate[closed], rel_tol=1e-12, abs_tol=1e-12)
+                    or not math.isclose(aggregate[total], math.fsum(accounting[total].values()), rel_tol=1e-12, abs_tol=1e-12)):
+                raise RuntimeError("team run lost/duplicated global prefix or interval costs")
+            for uid in accounting[total]:
+                user_prefix = "per_user_prefix_cost" if total == "total_cost" else "per_user_discounted_prefix_cost"
+                user_closed = "per_user_closed_cost" if total == "total_cost" else "per_user_discounted_closed_cost"
+                if not math.isclose(aggregate[total], aggregate[user_prefix][uid] + aggregate[user_closed][uid],
+                                    rel_tol=1e-12, abs_tol=1e-12):
+                    raise RuntimeError("team actor view lost part of its global return")
+        team_fields = {"team_accounting": aggregate, "learning_return_contract": team_return_contract()}
     return {
         "environment_seed": environment_seed, "training": training,
         "training_slots_before": slot_start, "training_slots_after": training_slots,
         "elapsed_slots": adapter.environment.slot, "transition_count": transition_count,
         "updates": losses, "metrics": terminal_metrics(adapter.environment),
-        "accounting": accounting, "actions": actions_taken,
+        "accounting": accounting, "actions": actions_taken, **team_fields,
     }, training_slots

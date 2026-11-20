@@ -5,6 +5,14 @@ QR controller are implemented with numerical tests, replay, greedy evaluation,
 and complete episode-boundary checkpoints. This is an implementation milestone,
 not a calibrated performance study or evidence of Q1 publication readiness.
 
+The opt-in `TeamNeuralCostAgent` now uses the same architecture/update math
+with typed team-return records and explicit replay/checkpoint scope. Each
+vehicle still acts on its local observation only. Individual-return agents
+and checkpoints remain supported; see [team_returns.md](team_returns.md) for
+selection, accounting and compatibility, and
+[team_learning_validation_20261120.md](team_learning_validation_20261120.md)
+for bounded end-to-end and exact resume verification.
+
 ## Dependency boundary and execution
 
 The simulator, encoders, replay, schedules, and analytical baselines remain

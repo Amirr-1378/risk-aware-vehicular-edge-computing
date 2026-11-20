@@ -9,6 +9,10 @@ the simulator described in
 
 Current cost/control definitions are in
 [objective_and_preferences.md](objective_and_preferences.md).
+The opt-in cooperative [team-return path](team_returns.md) preserves the same
+local actor inputs and carries a separately typed return scope. The per-user
+formulas below describe the original individual-return interface; team actor
+intervals may overlap and must not be added as physical episode cost.
 
 ## Received information and vector schema v3
 

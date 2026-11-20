@@ -9,12 +9,16 @@ queue/future information is introduced by this layer.
 `agents.team_returns.TeamReturnAdapter` is an opt-in training-data interface
 over the unchanged `DecisionAdapter`. It preserves the exact local raw/vector
 observations, masks, action batches, physical transitions, individual task
-ledgers, query/fallback protocol and completion assumptions. It creates team
-return records for future cooperative independent learning. It is **not yet
-connected to a neural learner**, and existing learning runners still use their
-original individual-return contract. No learning-performance gain is claimed.
+ledgers, query/fallback protocol and completion assumptions. Team records can
+now train `TeamNeuralCostAgent` through typed `TeamReplayBuffer`, with explicit
+team checkpoint/return contracts. The smoke runner exposes `--return-scope team`;
+individual returns remain the default, and the stochastic v3 learning plan
+still uses its declared individual-return implementation. No learning-performance
+gain is claimed.
 The [2026-11-20 verification record](team_return_validation_20261120.md)
 documents the complete matched interface audit and automated test results.
+The subsequent [learning verification](team_learning_validation_20261120.md)
+records optimizer, checkpoint and resume checks.
 
 ## Objective and decision intervals
 
@@ -96,17 +100,21 @@ individual transition, retained for reproducibility; `cost` and
 the scope/schema and original individual costs, so the targets cannot be
 silently relabeled. Legacy replay rejects the distinct team record type.
 
-No existing replay, encoder, checkpoint, hyperparameter, objective weight,
-CVaR alpha/lambda, or sigmoid/argmin rule was changed. A future learner must
-explicitly support the team-return contract in replay, protocol, reports and
-checkpoint metadata. Matching vector dimensions alone cannot authorize
-loading an individual-return model as a trained team-return model. A warm
-start from such weights would be a separate declared experiment.
+Existing individual replay/checkpoint formats, encoder, hyperparameters,
+physical objective weights, CVaR alpha/lambda, and sigmoid/argmin behavior are
+preserved. The team learner reuses the tested network/optimizer/QR math while
+validating the new record type and its explicitly declared gamma. It consumes
+the wrapper's team `discounted_cost`, not `source.discounted_cost`, in the
+Bellman target. Copying `source` into old replay would retain individual targets.
 
-The new type is currently an in-memory data/validation contract. It does not
-provide a team replay deserializer, optimizer update, checkpoint-resume path,
-or new neural benchmark. In particular, copying `source` into old replay
-would retain the old individual targets, not enable team learning.
+Team replay container schema 1 records the complete team-return contract,
+physical cost model 2, wrapper/source records, ring cursor and owned RNG state.
+Individual replay schema 2 and team replay schema 1 reject each other's states
+and samples, including empty buffers with no dimensions to distinguish them.
+Team checkpoint schema 3 records `learning_return_contract` and requires team
+replay. Individual checkpoint schema 2 remains readable only by the individual
+agent; both loaders reject cross-scope files even when tensors and encoder
+signatures match. No implicit migration or weight warm start is performed.
 
 ## Reproducible interface audit
 
@@ -123,15 +131,32 @@ against both global disjoint intervals and every user's separate view. This
 is an interface audit, not learned-policy evaluation. Test access is absent;
 existing report paths are rejected. Empty cases remain included.
 
-## Next integration boundary
+## Neural execution and next boundary
 
-The next implementation milestone is a deliberately versioned team-compatible
-learning/replay/checkpoint path, retaining independent local actors, followed
-by a bounded training-mechanics check and matched individual/team-return
-ablation. The shared cost may increase variance; it is not a proven cure for
-the gap to greedy. The global evaluation objective remains the physical task
-sum, never a sum of overlapping actor records. Additional independent data,
-calibration, missing baselines and a frozen evaluation protocol remain needed.
+```text
+python -m experiments.run_learning_smoke --return-scope team --algorithm qr_dqn_cvar --episodes 4 --checkpoint artifacts/team/NEW-first.pt
+python -m experiments.run_learning_smoke --return-scope team --algorithm qr_dqn_cvar --episodes 2 --resume artifacts/team/NEW-first.pt --checkpoint artifacts/team/NEW-continued.pt
+```
+
+Each checkpoint destination must be new. The team smoke run kind is
+`synthetic-team-learning-smoke-v1`; its metadata binds scenario/configuration,
+seeds, schedule, team-return contract and actual source hash. Resume requires
+the exact PyTorch release and matching run protocol, at complete episode
+boundaries. This does not implement a resumable paper-scale sweep.
+
+Runtime rejects mismatched agent/adapter scopes before resetting an episode.
+Reports retain original individual `accounting` and a separate unique global
+`team_accounting`; overlapping actor views are never summed as episode cost.
+Greedy evaluation does not alter weights, replay, optimizer, exploration RNG
+or training clock. All four existing algorithms support the team path.
+
+The next milestone is an explicit stochastic individual/team-return ablation
+protocol and an informative fixed development budget. The four-episode smoke
+check is not a performance comparison or convergence study. Shared costs may
+increase variance and do not prove global or static-CVaR optimality. The
+evaluation objective remains the physical task sum. Additional independent
+data, calibration, missing baselines and a frozen evaluation protocol remain
+needed before main training.
 
 Main training must run in Colab and must be announced to Amir before it starts.
 At each completed verified implementation milestone, remind Amir about commit

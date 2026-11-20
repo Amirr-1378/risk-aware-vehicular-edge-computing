@@ -68,6 +68,26 @@ class TeamDecisionTransition:
         return self.source.observation
 
     @property
+    def action(self):
+        return self.source.action
+
+    @property
+    def duration_slots(self):
+        return self.source.duration_slots
+
+    @property
+    def bootstrap_discount(self):
+        return self.source.bootstrap_discount
+
+    @property
+    def next_observation(self):
+        return self.source.next_observation
+
+    @property
+    def terminated(self):
+        return self.source.terminated
+
+    @property
     def discounted_reward(self) -> float:
         return -self.discounted_cost
 

@@ -113,6 +113,15 @@ class NeuralCostAgent:
     epsilon is supplied by the experiment (same value for a complete action
     batch). Greedy evaluation consumes no exploration/replay randomness.
     """
+    _replay_type = ReplayBuffer
+    _transition_validator = staticmethod(validate_transition)
+    _checkpoint_schema_version = 2
+
+    @classmethod
+    def learning_return_contract(cls):
+        """None denotes the existing individual-return checkpoint v2 contract."""
+        return None
+
     def __init__(self, config: AgentConfig, encoder: ObservationEncoder, *, seed: int):
         if not isinstance(config, AgentConfig):
             raise TypeError("config must be AgentConfig")
@@ -130,7 +139,7 @@ class NeuralCostAgent:
         self.target.requires_grad_(False)
         self.optimizer = torch.optim.Adam(self.online.parameters(), lr=config.learning_rate,
                                           foreach=False, fused=False)
-        self.replay = ReplayBuffer(capacity=config.replay_capacity,
+        self.replay = self._replay_type(capacity=config.replay_capacity,
                                    seed=streams.stream("replay-seed").getrandbits(63))
         self._exploration_seed = streams.stream("exploration-seed").getrandbits(63)
         self._exploration: dict[int, Random] = {}
@@ -158,7 +167,7 @@ class NeuralCostAgent:
                                       risk_weight=self.config.effective_risk_weight)[0])
 
     def _validate_sample(self, transition: DecisionTransition):
-        validate_transition(transition)
+        self._transition_validator(transition)
         self._validate_input(transition.observation)
         if transition.next_observation is not None:
             self._validate_input(transition.next_observation)
@@ -260,7 +269,7 @@ class NeuralCostAgent:
         if run_metadata is not None and not isinstance(run_metadata, dict):
             raise TypeError("run_metadata must be a JSON-compatible dictionary")
         payload = {
-            "checkpoint_schema_version": 2, "cost_model_version": COST_MODEL_VERSION,
+            "checkpoint_schema_version": self._checkpoint_schema_version, "cost_model_version": COST_MODEL_VERSION,
             "model_contract": model_contract(), "torch_version": str(torch.__version__),
             "python_version": platform.python_version(), "config": asdict(self.config),
             "encoder": self.signature, "seed": self.seed,
@@ -270,6 +279,8 @@ class NeuralCostAgent:
             "exploration": {user_id: rng.getstate() for user_id, rng in self._exploration.items()},
             "run_metadata_json": json.dumps(run_metadata or {}, sort_keys=True, allow_nan=False),
         }
+        if self.learning_return_contract() is not None:
+            payload["learning_return_contract"] = self.learning_return_contract()
         path = Path(path)
         path.parent.mkdir(parents=True, exist_ok=True)
         with path.open("xb") as destination:
@@ -279,18 +290,21 @@ class NeuralCostAgent:
     def load_checkpoint(cls, path: str | Path, encoder: ObservationEncoder):
         """Load only a trusted local checkpoint; restricted tensor/primitive loader."""
         state = torch.load(path, map_location="cpu", weights_only=True)
-        if (state.get("checkpoint_schema_version") != 2
+        if (type(state.get("checkpoint_schema_version")) is not int
+                or state.get("checkpoint_schema_version") != cls._checkpoint_schema_version
                 or type(state.get("cost_model_version")) is not int
                 or state.get("cost_model_version") != COST_MODEL_VERSION
                 or state.get("model_contract") != model_contract()
                 or state["encoder"] != encoder_signature(encoder)):
             raise ValueError("checkpoint cost model/schema or encoder mismatch; historical objectives cannot be resumed")
+        if state.get("learning_return_contract") != cls.learning_return_contract():
+            raise ValueError("checkpoint learning return scope mismatch")
         if state["torch_version"] != str(torch.__version__):
             raise ValueError("exact PyTorch version required for reproducible training resume")
         config = dict(state["config"])
         config["hidden_sizes"] = tuple(config["hidden_sizes"])
         result = cls(AgentConfig(**config), encoder, seed=state["seed"])
-        replay = ReplayBuffer.from_state_dict(state["replay"])
+        replay = cls._replay_type.from_state_dict(state["replay"])
         if replay.capacity != result.config.replay_capacity:
             raise ValueError("checkpoint replay capacity mismatch")
         for item in replay:

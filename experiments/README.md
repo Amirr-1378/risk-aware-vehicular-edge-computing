@@ -131,7 +131,23 @@ team-return intervals may overlap and are never summed as episode cost:
 python -m experiments.run_team_return_audit --output reports/NEW-team-return-audit/report.json
 ```
 
-There is no neural training, controller at MEC, extra actor input or test
-option. Current neural runners still learn individual returns. The new team
-records have a distinct type/scope and are rejected by legacy replay; see
-[`../docs/team_returns.md`](../docs/team_returns.md) before learner integration.
+This interface audit has no neural training, controller at MEC, extra actor
+input or test option. Team records have a distinct type/scope and are rejected
+by legacy replay; see [`../docs/team_returns.md`](../docs/team_returns.md).
+
+The neural smoke runner now has an explicit `--return-scope team` path:
+
+```text
+python -m experiments.run_learning_smoke --return-scope team --algorithm qr_dqn_cvar --episodes 4 --checkpoint artifacts/team/NEW-first.pt
+python -m experiments.run_learning_smoke --return-scope team --episodes 2 --resume artifacts/team/NEW-first.pt --checkpoint artifacts/team/NEW-continued.pt
+```
+
+The default remains `individual`; the stochastic learning v3 JSON/protocol
+remains individual-return only. Team smoke run kind v1/report schema 3 binds
+the return contract, source/configuration and seeds, uses team replay schema 1
+and checkpoint schema 3, and rejects individual checkpoints/replay. Resume is
+only at complete episode boundaries with the exact PyTorch/source/protocol.
+The inherited DQN/QR loss, mask/risk/argmin and local actor input are unchanged.
+Reports use unique physical team accounting, not summed overlapping replay
+costs. This is a bounded mechanics check, not main training or evidence of
+beating greedy. See [`../docs/team_learning_validation_20261120.md`](../docs/team_learning_validation_20261120.md).

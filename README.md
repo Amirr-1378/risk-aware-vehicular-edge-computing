@@ -93,8 +93,10 @@ The implementation milestones are:
 12. **complete:** offline action-audit infrastructure with cloned RNG/state,
    greedy continuation, and separate owner/system cost comparisons;
 13. **complete:** opt-in team-return interface and matched accounting tests
-   for independent local-observation actors; neural integration remains pending;
-14. **next:** versioned team-return learner integration, empirical calibration, larger learned training, frozen paper
+   for independent local-observation actors;
+14. **complete:** team-compatible neural learning, typed replay and checkpoint
+   contracts, frozen evaluation, and exact episode-boundary resume verification;
+15. **next:** stochastic return-scope ablation, empirical calibration, larger learned training, frozen paper
    protocols, adapted paper/query-free MEC baselines, and final evaluation.
 
 Main training is planned for Google Colab. Notify Amir before starting that
