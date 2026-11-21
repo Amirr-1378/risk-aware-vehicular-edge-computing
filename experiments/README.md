@@ -189,3 +189,22 @@ binds behavior variant and checkpoint phase; existing configurations/checkpoints
 and default collection remain supported. This experiment does not implicitly
 adopt a new final paper method. See
 [`../docs/behavior_warmup_development.md`](../docs/behavior_warmup_development.md).
+
+`runtime_preflight.py` checks compatible installed package metadata without
+importing learning libraries or starting training. `run_resumable_development.py`
+advances one standard-behavior model under an existing fixed development plan:
+
+```text
+python -m experiments.runtime_preflight --require-learning
+python -m experiments.run_resumable_development --output-dir reports/NEW-session --max-additional-episodes 1
+python -m experiments.run_resumable_development --output-dir reports/NEW-session --resume --max-additional-episodes 1
+```
+
+Each complete episode has an immutable report/checkpoint/commit; final validation
+is frozen and published only after the fixed training budget. Source, expanded
+protocols, encoder, scope, seed and exact CPU runtime must match on resume.
+Interrupted final writes fail closed; explicit verified-prefix recovery copies
+to a fresh directory and preserves original evidence. This path has no teacher,
+held-out test, automatic best-model selection or main-training launcher. See
+[`../docs/colab_development.md`](../docs/colab_development.md) and the opt-in Colab
+notebook. The paper's main protocol is still pending.

@@ -139,6 +139,13 @@ evaluation cost. Faithful reconstruction/action-space adaptation is still pendin
 
 ## Development
 
+Colab preparation now has an output-empty, opt-in
+[`notebook`](notebooks/colab_development.ipynb) and an episode-boundary resumable
+single-model development runner. Source/runtime/protocol guards and immutable
+checkpoint reports preserve the existing method. This does not start main
+training or enable greedy warmup. See [`docs/colab_development.md`](docs/colab_development.md)
+for private-source upload, fixed budgets and explicit interruption recovery.
+
 The package uses a `src` layout and will target Python 3.11 or newer.
 
 Install the package with development dependencies and run the tests with:
