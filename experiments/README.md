@@ -236,3 +236,51 @@ greedy and other fixed policies remain unchanged. The new outer protocol
 records actual per-run encoders separately from the nested learning-v3 budget
 template. No fitted statistics, teacher, main training or held-out evaluation
 is added. See [`../docs/snr_representation_development.md`](../docs/snr_representation_development.md).
+
+`learning_budget_protocol.py` declares a separate development study in
+`configs/learning_budget_v1.json`, bound to expanded synthetic traces in
+`configs/development_budget_v1.json`. Two SNR representations x QR/QR-CVaR x
+seeds 11/29/47 create 12 continuing chains, each evaluated after 20, 100 and
+500 training episodes on the same 20 validation cases in each of four profiles.
+The legacy encoder remains the default elsewhere; both representation arms
+remain required here. Inspect the plan without constructing trajectories or
+a learner:
+
+```text
+python -m experiments.run_learning_budget_session --plan
+```
+
+`run_learning_budget_session.py` advances only one selected chain, normally in
+chunks of at most ten complete training episodes:
+
+```text
+python -m experiments.run_learning_budget_session --variant log_snr_v4 --algorithm qr_dqn_cvar --agent-seed 11 --output-dir reports/NEW-budget-study/log_snr_v4/qr_dqn_cvar/seed-11 --max-additional-episodes 10
+python -m experiments.run_learning_budget_session --variant log_snr_v4 --algorithm qr_dqn_cvar --agent-seed 11 --output-dir reports/NEW-budget-study/log_snr_v4/qr_dqn_cvar/seed-11 --resume --max-additional-episodes 10
+```
+
+The cap counts training episodes only: a call reaching a budget point also
+runs its complete 80-episode frozen validation cohort. Source/runtime/protocol,
+encoder and model identities are strict resume inputs. Interrupted unpublished
+chunks repeat the same scene seeds from the last committed checkpoint; no
+scene is skipped or rerolled. Existing journals are never overwritten.
+
+`learning_budget_results.py` runs the five unchanged shared references once
+and separately collects a complete grid without learning or scene generation:
+
+```text
+python -m experiments.learning_budget_results --study-dir reports/NEW-budget-study --references
+python -m experiments.learning_budget_results --study-dir reports/NEW-budget-study --output reports/NEW-budget-study/summary.json
+```
+
+Incomplete grids produce progress only. All budgets are predeclared; there is
+no validation-driven stopping, extension, best-checkpoint/seed selection or
+pooled-policy CVaR. The full plan counts 6000 training, 2880 learned validation
+and 400 fixed-policy episodes, 9280 total; the larger study has not been run
+during preparation. Its manual one-chain
+[`Colab notebook`](../notebooks/colab_learning_budget.ipynb) keeps all action
+gates false. Commit/push the verified milestone with Amir's authorization
+before obtaining a pinned source ZIP for Colab. This remains synthetic
+development; main training, calibration and held-out evaluation are later work.
+See [`../docs/learning_budget_development.md`](../docs/learning_budget_development.md).
+The local planning and fixture-test record is
+[`../docs/learning_budget_preparation_20261121.md`](../docs/learning_budget_preparation_20261121.md).

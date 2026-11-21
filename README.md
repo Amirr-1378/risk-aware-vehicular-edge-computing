@@ -70,6 +70,8 @@ The approved design baseline is documented in:
   stochastic individual/team-return training, paired episode costs and fixed budgets;
 - [`docs/behavior_warmup_development.md`](docs/behavior_warmup_development.md):
   optional causal training behavior warmup, core-method boundaries and matched budgets;
+- [`docs/learning_budget_development.md`](docs/learning_budget_development.md):
+  fixed 20/100/500-episode learning curves, chunked Colab continuation and complete-grid reporting;
 - [`docs/combined_cost_baseline.md`](docs/combined_cost_baseline.md): combined-cost
   heuristic formulas, public calibration assumptions, and input/baseline version 2.
 
@@ -113,7 +115,11 @@ The implementation milestones are:
    checkpoint guards and matched representation-comparison infrastructure;
    the [executed pilot](docs/snr_representation_validation_20261121.md) improves
    numerical scale without consistent mean-cost gains; schema-3 defaults remain unchanged;
-20. **next:** empirical calibration, informative learning studies, frozen paper
+20. **complete:** preparation of a fixed 12-chain, 20/100/500-episode development
+   study with expanded trace capacity, resumable chunks, frozen validation and
+   complete-grid collection; the declared larger study has not been executed;
+21. **next:** execute the declared learning-budget study in Colab, empirical
+   calibration, frozen paper
    protocols, adapted paper/query-free MEC baselines, and final evaluation.
 
 Main training is planned for Google Colab. Notify Amir before starting that
@@ -160,6 +166,16 @@ checkpoint continuation: four training episodes, eight frozen validation cases,
 75 transitions and 44 updates. The received archive, all five checkpoints and
 episode records passed independent verification; main training remains unstarted. See
 [`docs/colab_execution_20261121.md`](docs/colab_execution_20261121.md).
+
+The next development study has a separate opt-in
+[`Colab notebook`](notebooks/colab_learning_budget.ipynb) and fixed learning-budget
+plan. It advances one selected chain through 20, 100 and 500 training episodes,
+with the same validation cohort at each point. Twelve declared chains and shared
+fixed references total 9280 planned physical episodes; these are planning counts,
+not completed results. Main training and held-out evaluation remain unstarted.
+See [`docs/learning_budget_development.md`](docs/learning_budget_development.md).
+The [local preparation verification](docs/learning_budget_preparation_20261121.md)
+records the fixed identities, small-fixture checks and passing test suites.
 
 The package uses a `src` layout and will target Python 3.11 or newer.
 
