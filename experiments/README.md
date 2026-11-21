@@ -222,3 +222,17 @@ and excludes validation outcomes from analysis. No new training, sampling,
 feature transformation or scale fitting is performed. Archived training
 provenance and auditor provenance remain separate. See
 [`../docs/training_input_diagnostics.md`](../docs/training_input_diagnostics.md).
+
+`run_snr_representation_audit.py` compares the unchanged linear schema-3
+encoder with opt-in normalized-log1p schema 4 under an explicit shared plan:
+
+```text
+python -m experiments.run_snr_representation_audit --output-dir reports/NEW-snr-representation-pilot
+```
+
+Both QR and QR-CVaR are retrained from paired initial weights, with the same
+scenes, task/update budgets and frozen final-model validation. The existing
+greedy and other fixed policies remain unchanged. The new outer protocol
+records actual per-run encoders separately from the nested learning-v3 budget
+template. No fitted statistics, teacher, main training or held-out evaluation
+is added. See [`../docs/snr_representation_development.md`](../docs/snr_representation_development.md).

@@ -102,9 +102,15 @@ class UpdateStats:
 
 
 def encoder_signature(encoder: ObservationEncoder) -> dict:
-    return {"schema_version": encoder.schema_version, "dimension": encoder.dimension,
-            "max_server_vehicles": encoder.max_server_vehicles,
-            "feature_names": encoder.feature_names, "scales": asdict(encoder.scales)}
+    signature = {"schema_version": encoder.schema_version, "dimension": encoder.dimension,
+                 "max_server_vehicles": encoder.max_server_vehicles,
+                 "feature_names": encoder.feature_names, "scales": asdict(encoder.scales)}
+    # Only the opt-in encoder adds this field. Preserve the complete legacy v3
+    # signature and checkpoint/replay container formats byte-for-value.
+    representation = getattr(encoder, "representation_contract", None)
+    if callable(representation):
+        signature["representation_contract"] = representation()
+    return signature
 
 
 class NeuralCostAgent:
@@ -147,8 +153,10 @@ class NeuralCostAgent:
 
     def _validate_input(self, observation: EncodedObservation):
         validate_observation(observation)
-        if len(observation.values) != self.input_dimension or len(observation.action_mask) != self.action_count:
-            raise ValueError("encoded observation does not match network dimensions")
+        if (observation.schema_version != self.signature["schema_version"]
+                or len(observation.values) != self.input_dimension
+                or len(observation.action_mask) != self.action_count):
+            raise ValueError("encoded observation does not match network encoder schema or dimensions")
 
     @torch.no_grad()
     def act(self, observation: EncodedObservation, *, epsilon: float = 0.) -> int:

@@ -236,3 +236,14 @@ curve per valid server, not a selection probability, replay cost, reward,
 quantile-loss transformation or substitute TD target. Evaluation still uses
 masked argmin J and seeded training exploration is unchanged. The default
 lambda=.5 is preserved; beta=1 is a positive display-only default.
+
+## Opt-in log-SNR encoding
+
+The legacy schema-3 interface remains the default. An explicit schema-4
+`LogSNRObservationEncoder` now replaces only per-SV SNR coordinates with
+`log1p(s)/log1p(reference)` and names them `snr_log1p`. Raw observations,
+dimensions, masks, costs and decision-epoch transitions retain their meanings.
+Mixed encoded schemas are rejected in transitions/replay/agents; checkpoint
+signatures also bind the transform/reference. See
+[`snr_representation_development.md`](snr_representation_development.md) for
+the matched comparison and unchanged method boundaries.

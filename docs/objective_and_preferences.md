@@ -155,13 +155,18 @@ not silently replace its original formulas or label it our proposed method.
 | --- | --- |
 | Actual objective / metadata cost model | 2 |
 | Task specification | label-free (old criticality constructor rejected) |
-| Raw / encoded observations | 3 / 3, dimension `36+15*M` (96 at M=4) |
+| Raw / encoded observations | raw 3; encoded 3 by default, opt-in log-SNR 4; dimension `36+15*M` (96 at M=4) |
 | Individual replay / checkpoint containers | 2 / 2, explicit cost-model guard |
 | Optional team replay / checkpoint containers | 1 / 3, explicit team-return contract |
 | Scenario spec / development plan | 2 / 2 |
 | Learning plan / fixed-policy suite | 3 / 3 |
 
 Active configurations are `development_v2.json` and `learning_pilot_v3.json`.
+The separately versioned `snr_representation_pilot_v1.json` compares legacy
+encoding with normalized-log1p SINR while retaining every objective/risk rule
+above. Per-run schema 4 is bound in its encoder/checkpoint signature; it does
+not reinterpret old weights or silently change the v3 defaults. See
+[`snr_representation_development.md`](snr_representation_development.md).
 Old v1/v2 learning JSON and the old development v1 JSON remain unchanged and
 are rejected by current loaders. Existing results/checkpoints are preserved,
 not padded, relabeled, silently re-scored or used as corrected-model evidence.

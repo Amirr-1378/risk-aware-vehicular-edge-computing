@@ -99,7 +99,8 @@ def _geometry(rows, names, network):
         return [value / total if total else None for value in values]
 
     squared, linear = shares(mass), shares(contributions)
-    snr_indices = [index for index, name in enumerate(names) if name.startswith("server[") and name.endswith(".snr")]
+    snr_indices = [index for index, name in enumerate(names)
+                   if name.startswith("server[") and name.endswith((".snr", ".snr_log1p"))]
     return {"squared_mass_shares": [{"name": name, "share": value} for name, value in zip(names, squared, strict=True)],
         "snr_squared_mass_share": math.fsum(squared[i] for i in snr_indices) if math.fsum(mass) else None,
         "first_linear_absolute_contribution_shares": [

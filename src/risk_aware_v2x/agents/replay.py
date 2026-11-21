@@ -9,13 +9,19 @@ from ..entities._validation import (
 )
 from ..models.randomness import RandomStreams
 from ..contracts import COST_MODEL_VERSION
-from .encoding import ENCODED_OBSERVATION_SCHEMA_VERSION, EncodedObservation
+from .encoding import (
+    ENCODED_OBSERVATION_SCHEMA_VERSION, LOG_SNR_ENCODED_OBSERVATION_SCHEMA_VERSION,
+    EncodedObservation,
+)
 from .transitions import DecisionTransition
 
 
 def validate_observation(observation: EncodedObservation) -> None:
-    if not isinstance(observation, EncodedObservation) or observation.schema_version != ENCODED_OBSERVATION_SCHEMA_VERSION:
-        raise ValueError("expected label-free encoded observation schema v3")
+    if (not isinstance(observation, EncodedObservation)
+            or type(observation.schema_version) is not int
+            or observation.schema_version not in (
+                ENCODED_OBSERVATION_SCHEMA_VERSION, LOG_SNR_ENCODED_OBSERVATION_SCHEMA_VERSION)):
+        raise ValueError("expected encoded observation schema v3 or explicit log-SNR schema v4")
     require_non_negative_int("user_vehicle_id", observation.user_vehicle_id)
     require_non_negative_int("task_id", observation.task_id)
     if not isinstance(observation.values, tuple) or not observation.values:
@@ -52,10 +58,22 @@ def validate_transition(transition: DecisionTransition) -> None:
     else:
         validate_observation(transition.next_observation)
         current, following = transition.observation, transition.next_observation
-        if (following.user_vehicle_id != current.user_vehicle_id
+        if (following.schema_version != current.schema_version
+                or following.user_vehicle_id != current.user_vehicle_id
                 or len(following.values) != len(current.values)
                 or len(following.action_mask) != len(current.action_mask)):
-            raise ValueError("next observation must preserve user, vector, and action dimensions")
+            raise ValueError("next observation must preserve encoder schema, user, vector, and action dimensions")
+
+
+def validate_replay_schema(transitions) -> None:
+    """A replay container retains one encoded meaning, without new payload keys.
+
+    Empty replay has no sample schema; the checkpoint's encoder signature still
+    binds its representation. Existing v3 state dictionaries remain unchanged.
+    """
+    schemas = {item.observation.schema_version for item in transitions}
+    if len(schemas) > 1:
+        raise ValueError("replay cannot mix encoded observation schemas")
 
 
 def transition_record(transition: DecisionTransition) -> dict:
@@ -96,6 +114,8 @@ class ReplayBuffer:
 
     def append(self, transition: DecisionTransition) -> None:
         validate_transition(transition)
+        if self._items and self._items[0].observation.schema_version != transition.observation.schema_version:
+            raise ValueError("replay cannot mix encoded observation schemas")
         if len(self._items) < self.capacity:
             self._items.append(transition)
         else:
@@ -109,6 +129,7 @@ class ReplayBuffer:
         return tuple(self._rng.sample(self._items, size))
 
     def state_dict(self) -> dict:
+        validate_replay_schema(self._items)
         return {"schema_version": 2, "cost_model_version": COST_MODEL_VERSION,
                 "capacity": self.capacity, "next_index": self._next,
                 "items": [transition_record(item) for item in self._items],
@@ -121,6 +142,7 @@ class ReplayBuffer:
             raise ValueError("unsupported replay cost model/schema")
         result = cls(capacity=state["capacity"], seed=0)
         items = [transition_from_record(record) for record in state["items"]]
+        validate_replay_schema(items)
         index = require_non_negative_int("next_index", state["next_index"])
         if (len(items) > result.capacity or index >= result.capacity
                 or (len(items) < result.capacity and index != len(items))):

@@ -128,3 +128,7 @@ milestone with prior notice to Amir.
 
 The executed training-only check is recorded in
 [`training_input_validation_20261121.md`](training_input_validation_20261121.md).
+The separately versioned SNR representation comparison is defined in
+[`snr_representation_development.md`](snr_representation_development.md). The
+numerical helper recognizes both `.snr` and `.snr_log1p` feature names; existing
+resumable-session CLI contracts/defaults remain schema 3.

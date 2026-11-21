@@ -6,7 +6,7 @@ from random import Random
 from ..contracts import COST_MODEL_VERSION
 from ..entities._validation import require_non_negative_int, require_positive_int
 from ..models.randomness import RandomStreams
-from .replay import transition_from_record
+from .replay import transition_from_record, validate_replay_schema
 from .team_returns import TEAM_RETURN_SCHEMA_VERSION, TEAM_RETURN_SCOPE, TeamDecisionTransition, team_return_contract
 
 
@@ -52,6 +52,8 @@ class TeamReplayBuffer:
 
     def append(self, transition):
         validate_team_transition(transition)
+        if self._items and self._items[0].observation.schema_version != transition.observation.schema_version:
+            raise ValueError("team replay cannot mix encoded observation schemas")
         if len(self._items) < self.capacity:
             self._items.append(transition)
         else:
@@ -65,6 +67,7 @@ class TeamReplayBuffer:
         return tuple(self._rng.sample(self._items, size))
 
     def state_dict(self):
+        validate_replay_schema(self._items)
         return {"schema_version": 1, "cost_model_version": COST_MODEL_VERSION,
             "team_return_contract": team_return_contract(), "capacity": self.capacity,
             "next_index": self._next, "items": [team_transition_record(item) for item in self._items],
@@ -80,6 +83,7 @@ class TeamReplayBuffer:
         if not isinstance(state["items"], list):
             raise TypeError("team replay items must be a list")
         items = [team_transition_from_record(record) for record in state["items"]]
+        validate_replay_schema(items)
         index = require_non_negative_int("next_index", state["next_index"])
         if (len(items) > result.capacity or index >= result.capacity
                 or (len(items) < result.capacity and index != len(items))):

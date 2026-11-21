@@ -140,6 +140,18 @@ class TrainingInputNumericsTests(unittest.TestCase):
         result = audit_agent_inputs(agent, samples, encoder.feature_names)
         self.assertAlmostEqual(result["fixed_cohort_loss"], 5. / 3.)
 
+    def test_log_snr_feature_name_is_included_in_diagnostic_mass(self):
+        from risk_aware_v2x.agents import LogSNRObservationEncoder
+        encoder = LogSNRObservationEncoder(max_server_vehicles=1, scales=FeatureScales())
+        agent = NeuralCostAgent(AgentConfig(hidden_sizes=(), num_quantiles=2,
+            batch_size=1, learning_starts=1, replay_capacity=4), encoder, seed=8)
+        values = [0.] * encoder.dimension
+        values[encoder.feature_names.index("server[0].present")] = 1.
+        values[encoder.feature_names.index("server[0].snr_log1p")] = 2.
+        observation = EncodedObservation(4, tuple(values), (True, True), 1, 1)
+        result = audit_agent_inputs(agent, (self.terminal(observation),), encoder.feature_names)
+        self.assertAlmostEqual(result["input_geometry"]["current"]["snr_squared_mass_share"], 4. / 5.)
+
 
 @unittest.skipUnless(HAS_LEARNING, "install learning dependencies for training session audits")
 class TrainingInputSessionTests(unittest.TestCase):

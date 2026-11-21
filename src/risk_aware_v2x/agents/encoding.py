@@ -4,10 +4,32 @@ import math
 from dataclasses import dataclass, fields
 
 from ..entities import QueryStatus
-from ..entities._validation import require_finite_float, require_non_negative_int, require_positive_float
+from ..entities._validation import (
+    require_finite_float, require_non_negative_float, require_non_negative_int, require_positive_float,
+)
 from ..environment.observations import RAW_OBSERVATION_SCHEMA_VERSION, OffloadingObservation, observed_valid_actions
 
 ENCODED_OBSERVATION_SCHEMA_VERSION = 3
+LOG_SNR_ENCODED_OBSERVATION_SCHEMA_VERSION = 4
+
+
+def normalized_log_snr(snr_linear: float, reference_snr_linear: float) -> float:
+    """Dimensionless log1p SINR relative to a fixed positive linear reference.
+
+    Both inputs are dimensionless power ratios. The map preserves zero and
+    sends the reference to one, without clipping or fitting data statistics.
+    It is strictly increasing over nonnegative real inputs; finite precision
+    may round extremely small differences. Non-finite results are rejected.
+    """
+    try:
+        snr = require_non_negative_float("snr_linear", snr_linear)
+        reference = require_positive_float("reference_snr_linear", reference_snr_linear)
+    except OverflowError as error:
+        raise ValueError("SNR and reference need finite float representations") from error
+    if snr == 0.:
+        return 0.
+    result = math.log1p(snr) / math.log1p(reference)
+    return require_finite_float("normalized_log_snr", result)
 
 
 @dataclass(frozen=True, slots=True)
@@ -92,6 +114,10 @@ class ObservationEncoder:
     def dimension(self) -> int:
         return len(self.feature_names)
 
+    def _snr_feature(self, snr_linear: float) -> float:
+        """Legacy v3 fixed linear reference, preserving its exact arithmetic."""
+        return snr_linear / self.scales.snr_linear
+
     def encode(self, observation: OffloadingObservation) -> EncodedObservation:
         if observation.schema_version != RAW_OBSERVATION_SCHEMA_VERSION:
             raise ValueError("unsupported raw observation schema")
@@ -130,7 +156,7 @@ class ObservationEncoder:
             r = server.record
             values.extend((
                 1.0, r.available_cpu_hz / s.cpu_hz, r.queue_workload_cycles / s.cpu_cycles,
-                r.battery_fraction, r.estimated_snr_linear / s.snr_linear,
+                r.battery_fraction, self._snr_feature(r.estimated_snr_linear),
                 r.estimated_rate_bps / s.rate_bps, r.estimated_downlink_rate_bps / s.rate_bps,
                 r.estimated_distance_m / s.distance_m, r.estimated_contact_time_s / s.time_s,
                 float(r.available), r.reserve_energy_fraction, r.relative_speed_mps / s.speed_mps,
@@ -138,3 +164,28 @@ class ObservationEncoder:
             ))
         encoded = tuple(require_finite_float(name, value) for name, value in zip(self.feature_names, values, strict=True))
         return EncodedObservation(self.schema_version, encoded, o.action_mask, o.user_vehicle_id, o.task_id)
+
+
+class LogSNRObservationEncoder(ObservationEncoder):
+    """Opt-in raw schema v3 -> vector v4 with fixed normalized-log1p SINR.
+
+    The v3 encoder remains the default. Only the received SNR representation
+    changes; identifiers, masks, other features and physical rates are retained.
+    ``FeatureScales.snr_linear`` is the fixed physical reference, not a fitted
+    maximum or clipping threshold. Old weights must not receive these vectors.
+    """
+    schema_version = LOG_SNR_ENCODED_OBSERVATION_SCHEMA_VERSION
+    _server_names = (
+        *ObservationEncoder._server_names[:4], "snr_log1p", *ObservationEncoder._server_names[5:],
+    )
+
+    def _snr_feature(self, snr_linear: float) -> float:
+        return normalized_log_snr(snr_linear, self.scales.snr_linear)
+
+    def representation_contract(self) -> dict:
+        """Explicit immutable-value metadata for the opt-in transformation."""
+        return {"schema_version": 1, "kind": "normalized-log1p-snr-v1",
+                "input": "cached-large-scale-linear-sinr",
+                "formula": "log1p(snr_linear)/log1p(reference_snr_linear)",
+                "reference_snr_linear": self.scales.snr_linear,
+                "fitted": False, "clipped": False}

@@ -109,7 +109,11 @@ The implementation milestones are:
 18. **complete:** training-only input/target diagnostics without model, replay
    or RNG mutation; the [executed audit](docs/training_input_validation_20261121.md)
    identifies SNR scale imbalance, with no encoder or objective change;
-19. **next:** empirical calibration, informative learning studies, frozen paper
+19. **complete:** opt-in normalized-log1p SNR encoder, explicit schema/replay/
+   checkpoint guards and matched representation-comparison infrastructure;
+   the [executed pilot](docs/snr_representation_validation_20261121.md) improves
+   numerical scale without consistent mean-cost gains; schema-3 defaults remain unchanged;
+20. **next:** empirical calibration, informative learning studies, frozen paper
    protocols, adapted paper/query-free MEC baselines, and final evaluation.
 
 Main training is planned for Google Colab. Notify Amir before starting that
