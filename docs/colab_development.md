@@ -163,3 +163,7 @@ approval follows from these infrastructure checks.
 
 The local verification record is
 [`colab_readiness_validation_20261121.md`](colab_readiness_validation_20261121.md).
+The subsequent Colab execution and independently verified archive, checkpoints
+and episode records are documented in
+[`colab_execution_20261121.md`](colab_execution_20261121.md). This completes the
+small execution/continuation check; main training remains a separate milestone.

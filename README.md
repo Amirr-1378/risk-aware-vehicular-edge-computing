@@ -146,6 +146,12 @@ checkpoint reports preserve the existing method. This does not start main
 training or enable greedy warmup. See [`docs/colab_development.md`](docs/colab_development.md)
 for private-source upload, fixed budgets and explicit interruption recovery.
 
+The small Colab plan completed through one episode followed by explicit
+checkpoint continuation: four training episodes, eight frozen validation cases,
+75 transitions and 44 updates. The received archive, all five checkpoints and
+episode records passed independent verification; main training remains unstarted. See
+[`docs/colab_execution_20261121.md`](docs/colab_execution_20261121.md).
+
 The package uses a `src` layout and will target Python 3.11 or newer.
 
 Install the package with development dependencies and run the tests with:
