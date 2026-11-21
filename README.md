@@ -104,7 +104,12 @@ The implementation milestones are:
    matched model/scene budgets, frozen-state checks and descriptive comparisons;
 16. **complete:** opt-in greedy training-behavior warmup infrastructure with
    unchanged core QR/CVaR math, teacher-free evaluation and matched ordinary-training controls;
-17. **next:** empirical calibration, informative learning studies, frozen paper
+17. **complete:** Colab preparation and independently verified small execution/
+   checkpoint continuation; main training remains unstarted;
+18. **complete:** training-only input/target diagnostics without model, replay
+   or RNG mutation; the [executed audit](docs/training_input_validation_20261121.md)
+   identifies SNR scale imbalance, with no encoder or objective change;
+19. **next:** empirical calibration, informative learning studies, frozen paper
    protocols, adapted paper/query-free MEC baselines, and final evaluation.
 
 Main training is planned for Google Colab. Notify Amir before starting that

@@ -208,3 +208,17 @@ to a fresh directory and preserves original evidence. This path has no teacher,
 held-out test, automatic best-model selection or main-training launcher. See
 [`../docs/colab_development.md`](../docs/colab_development.md) and the opt-in Colab
 notebook. The paper's main protocol is still pending.
+
+`run_training_input_audit.py` inspects a previously saved session's retained
+training replay, feature magnitudes, first-layer input contributions and
+initial/final cost predictions/targets on the same fixed replay cohort:
+
+```text
+python -m experiments.run_training_input_audit --session-dir reports/RECEIVED/session --output reports/NEW-training-input-audit/report.json
+```
+
+It validates checkpoint/journal identities, preserves all learner and RNG state,
+and excludes validation outcomes from analysis. No new training, sampling,
+feature transformation or scale fitting is performed. Archived training
+provenance and auditor provenance remain separate. See
+[`../docs/training_input_diagnostics.md`](../docs/training_input_diagnostics.md).
