@@ -296,9 +296,17 @@ effective risk weight zero and inputs/initial states paired to the linear
 CVaR chain. Its [matched log-SNR QR control](../docs/colab_budget_chain_4_20261122.md)
 also passed all checks, including exact recorded runtime identity after fresh
 setup. All four seed-11 combinations and 204 checkpoints are verified, with
-matched initial states and inputs across the factor grid. Eight chains for
-seeds 29/47 and shared fixed references remain outstanding. Progress records
+matched initial states and inputs across the factor grid. Progress records
 are combined after separate checks, retaining null performance curves and
 comparisons for the incomplete grid. The third chain's browser disconnection and complete
 output on reconnect were reported without rerunning the training cell;
 preserved journal integrity does not establish runtime interruption or recovery.
+The [log-SNR QR-CVaR/seed-29 audit](../docs/colab_budget_chain_5_20261122.md)
+also passed all archive, history and 51-checkpoint checks. Only the learner
+seed differs from the matched seed-11 contract: exogenous inputs are shared,
+while initial weights and replay RNG differ. Five chains and 255 checkpoints
+are verified; seven chains and shared fixed references remain. A failed
+auxiliary cross-runtime bitwise-initialization assumption was diagnosed and
+preserved: first-layer differences reach `7.45e-9`, with later layers exact.
+Archive tensor fingerprints and exact producer-runtime guards were unchanged;
+no training rerun or partial-grid performance comparison was performed.
