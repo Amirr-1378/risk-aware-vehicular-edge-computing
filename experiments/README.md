@@ -293,9 +293,12 @@ The 500 training inputs, fixed validation cohort and initial states match.
 The [linear risk-neutral QR/seed-11 control](../docs/colab_budget_chain_3_20261122.md)
 also passed archive/history/all-51-checkpoint checks at the same budgets, with
 effective risk weight zero and inputs/initial states paired to the linear
-CVaR chain. Three chains and 153 checkpoints are verified; nine chains and
-shared fixed references remain outstanding. Progress records are combined
-after separate checks, retaining null performance curves and comparisons for
-the incomplete grid. The third chain's browser disconnection and complete
+CVaR chain. Its [matched log-SNR QR control](../docs/colab_budget_chain_4_20261122.md)
+also passed all checks, including exact recorded runtime identity after fresh
+setup. All four seed-11 combinations and 204 checkpoints are verified, with
+matched initial states and inputs across the factor grid. Eight chains for
+seeds 29/47 and shared fixed references remain outstanding. Progress records
+are combined after separate checks, retaining null performance curves and
+comparisons for the incomplete grid. The third chain's browser disconnection and complete
 output on reconnect were reported without rerunning the training cell;
 preserved journal integrity does not establish runtime interruption or recovery.

@@ -118,10 +118,10 @@ The implementation milestones are:
 20. **complete:** preparation of a fixed 12-chain, 20/100/500-episode development
    study with expanded trace capacity, resumable chunks, frozen validation and
    complete-grid collection;
-21. **in progress:** the log-SNR and linear QR-CVaR/seed-11 chains and the linear
-   risk-neutral QR/seed-11 control each completed 500 training episodes and all
-   three fixed evaluation points; their archives, checkpoints and paired inputs
-   passed [independent verification](docs/colab_budget_chain_3_20261122.md), with nine
+21. **in progress:** all four SNR-representation/QR-risk combinations for seed 11
+   completed 500 training episodes and all three fixed evaluation points;
+   archives, checkpoints, paired inputs/initial states and fresh-runtime identity
+   passed [independent verification](docs/colab_budget_chain_4_20261122.md), with eight
    declared chains and shared fixed references still outstanding;
 22. **next:** finish the declared learning-budget study, empirical calibration, frozen paper
    protocols, adapted paper/query-free MEC baselines, and final evaluation.
@@ -181,14 +181,18 @@ See [`docs/learning_budget_development.md`](docs/learning_budget_development.md)
 The [local preparation verification](docs/learning_budget_preparation_20261121.md)
 records the fixed identities, small-fixture checks and passing test suites.
 The [first log-SNR chain](docs/colab_budget_chain_1_20261122.md), its
-[linear CVaR control](docs/colab_budget_chain_2_20261122.md), and the
-[linear risk-neutral QR control](docs/colab_budget_chain_3_20261122.md) each
-completed 500 training episodes and 240 validation executions. All three
-archives and 153 checkpoints passed verification; matched inputs and initial
-states were checked. Three of 12 declared chains are verified; complete-grid
+[linear CVaR control](docs/colab_budget_chain_2_20261122.md), the
+[linear risk-neutral QR control](docs/colab_budget_chain_3_20261122.md), and its
+[matched log-SNR QR control](docs/colab_budget_chain_4_20261122.md) each
+completed 500 training episodes and 240 validation executions. All four
+archives and 204 checkpoints passed verification; the seed-11 factor grid's
+inputs and initial states match. Four of 12 declared chains are verified;
+eight chains for seeds 29/47 and shared references remain. Complete-grid
 performance comparisons remain unavailable. A browser disconnection during
 the third chain was reported without a training-cell rerun; journal integrity
 passed, while runtime interruption/checkpoint recovery remains unverified.
+The fourth chain's reported fresh runtime has the same exact recorded
+software/build/driver identity as previous chains.
 
 The package uses a `src` layout and will target Python 3.11 or newer.
 
