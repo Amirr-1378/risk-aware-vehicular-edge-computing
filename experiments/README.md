@@ -304,9 +304,15 @@ preserved journal integrity does not establish runtime interruption or recovery.
 The [log-SNR QR-CVaR/seed-29 audit](../docs/colab_budget_chain_5_20261122.md)
 also passed all archive, history and 51-checkpoint checks. Only the learner
 seed differs from the matched seed-11 contract: exogenous inputs are shared,
-while initial weights and replay RNG differ. Five chains and 255 checkpoints
-are verified; seven chains and shared fixed references remain. A failed
+while initial weights and replay RNG differ. A failed
 auxiliary cross-runtime bitwise-initialization assumption was diagnosed and
 preserved: first-layer differences reach `7.45e-9`, with later layers exact.
 Archive tensor fingerprints and exact producer-runtime guards were unchanged;
 no training rerun or partial-grid performance comparison was performed.
+The [linear QR-CVaR/seed-29 audit](../docs/colab_budget_chain_6_20261122.md)
+also passed all archive/history/51-checkpoint checks. Initial producer states
+and inputs exactly match the log-SNR counterpart, without a Windows-reference
+initialization comparison. Six chains and 306 checkpoints are verified;
+the two neutral QR/seed-29 controls, four seed-47 chains and shared fixed
+references remain outstanding. Complete-grid performance comparisons remain
+withheld.

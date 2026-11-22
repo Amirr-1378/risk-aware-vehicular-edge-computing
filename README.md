@@ -119,10 +119,10 @@ The implementation milestones are:
    study with expanded trace capacity, resumable chunks, frozen validation and
    complete-grid collection;
 21. **in progress:** all four representation/QR-risk combinations for seed 11
-   and the log-SNR QR-CVaR/seed-29 chain completed 500 training episodes and all
+   and both QR-CVaR representations at seed 29 completed 500 training episodes and all
    three fixed evaluation points; archives, checkpoints, input/seed controls
-   and runtime identities passed [verification](docs/colab_budget_chain_5_20261122.md).
-   Five of twelve chains are verified; seven chains and shared references remain;
+   and runtime identities passed [verification](docs/colab_budget_chain_6_20261122.md).
+   Six of twelve chains are verified; six chains and shared references remain;
 22. **next:** finish the declared learning-budget study, empirical calibration, frozen paper
    protocols, adapted paper/query-free MEC baselines, and final evaluation.
 
@@ -186,7 +186,7 @@ The [first log-SNR chain](docs/colab_budget_chain_1_20261122.md), its
 [matched log-SNR QR control](docs/colab_budget_chain_4_20261122.md) each
 completed 500 training episodes and 240 validation executions. All four
 archives and 204 checkpoints passed verification; the seed-11 factor grid's
-inputs and initial states match, completing the seed-11 factor grid. Complete-grid
+inputs and initial states match. Complete-grid
 performance comparisons remain unavailable. A browser disconnection during
 the third chain was reported without a training-cell rerun; journal integrity
 passed, while runtime interruption/checkpoint recovery remains unverified.
@@ -194,11 +194,15 @@ The fourth chain's reported fresh runtime has the same exact recorded
 software/build/driver identity as previous chains.
 The [log-SNR QR-CVaR/seed-29 chain](docs/colab_budget_chain_5_20261122.md) also
 passed archive/history/all-51-checkpoint checks. Its scenario inputs match
-seed 11 while initial weights and replay RNG differ. Five of twelve chains
-and 255 checkpoints are verified; seven chains and shared references remain.
+seed 11 while initial weights and replay RNG differ.
 An auxiliary Windows-versus-Colab initialization comparison found first-layer
 differences up to `7.45e-9`; exact archive fingerprints and producer-runtime
 guards were retained, with the discrepancy documented separately.
+The [linear QR-CVaR/seed-29 control](docs/colab_budget_chain_6_20261122.md) also
+passed all checks, with inputs and initial producer states exactly matching
+its log-SNR counterpart. Six of twelve chains and 306 checkpoints are verified;
+the two neutral QR/seed-29 controls, four seed-47 chains and shared references
+remain. Complete-grid performance comparisons remain unavailable.
 
 The package uses a `src` layout and will target Python 3.11 or newer.
 
