@@ -290,7 +290,12 @@ The received `log_snr_v4` and `linear_v3` QR-CVaR/seed-11 chains each completed
 [linear-chain/input-pairing verification](../docs/colab_budget_chain_2_20261122.md)
 preserve archive/source/session identities and confirm all 102 checkpoints.
 The 500 training inputs, fixed validation cohort and initial states match.
-Two chains are verified; ten declared chains and shared fixed references
-remain outstanding. Progress records are combined after separate archive
-checks, retaining null performance curves and comparisons for this incomplete
-grid.
+The [linear risk-neutral QR/seed-11 control](../docs/colab_budget_chain_3_20261122.md)
+also passed archive/history/all-51-checkpoint checks at the same budgets, with
+effective risk weight zero and inputs/initial states paired to the linear
+CVaR chain. Three chains and 153 checkpoints are verified; nine chains and
+shared fixed references remain outstanding. Progress records are combined
+after separate checks, retaining null performance curves and comparisons for
+the incomplete grid. The third chain's browser disconnection and complete
+output on reconnect were reported without rerunning the training cell;
+preserved journal integrity does not establish runtime interruption or recovery.
