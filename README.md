@@ -118,9 +118,10 @@ The implementation milestones are:
 20. **complete:** preparation of a fixed 12-chain, 20/100/500-episode development
    study with expanded trace capacity, resumable chunks, frozen validation and
    complete-grid collection;
-21. **in progress:** the first Colab learning-budget chain completed 500 training
-   episodes and all three fixed evaluation points; its received export passed
-   [independent verification](docs/colab_budget_chain_1_20261122.md), with 11
+21. **in progress:** the matched log-SNR and linear QR-CVaR/seed-11 chains each
+   completed 500 training episodes and all three fixed evaluation points;
+   their archives, checkpoints and paired inputs passed
+   [independent verification](docs/colab_budget_chain_2_20261122.md), with ten
    declared chains and shared fixed references still outstanding;
 22. **next:** finish the declared learning-budget study, empirical calibration, frozen paper
    protocols, adapted paper/query-free MEC baselines, and final evaluation.
@@ -179,9 +180,12 @@ not completed results. Main training and held-out evaluation remain unstarted.
 See [`docs/learning_budget_development.md`](docs/learning_budget_development.md).
 The [local preparation verification](docs/learning_budget_preparation_20261121.md)
 records the fixed identities, small-fixture checks and passing test suites.
-The [first received Colab chain](docs/colab_budget_chain_1_20261122.md) completed
-500 training episodes and 240 validation executions. One of 12 declared chains
-is verified; complete-grid performance comparisons remain unavailable.
+The [first log-SNR chain](docs/colab_budget_chain_1_20261122.md) and its
+[matched linear control](docs/colab_budget_chain_2_20261122.md) each completed
+500 training episodes and 240 validation executions. Both archives and all
+102 checkpoints passed verification; paired scenario inputs and initial
+states match. Two of 12 declared chains are verified; complete-grid
+performance comparisons remain unavailable.
 
 The package uses a `src` layout and will target Python 3.11 or newer.
 

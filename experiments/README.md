@@ -284,9 +284,13 @@ development; main training, calibration and held-out evaluation are later work.
 See [`../docs/learning_budget_development.md`](../docs/learning_budget_development.md).
 The local planning and fixture-test record is
 [`../docs/learning_budget_preparation_20261121.md`](../docs/learning_budget_preparation_20261121.md).
-The first received Colab chain, `log_snr_v4 / qr_dqn_cvar / seed 11`, completed
-500 training episodes and all 240 declared validation executions. Its
-[independent verification record](../docs/colab_budget_chain_1_20261122.md)
-preserves the archive/source/session identities. The study still has 11
-declared chains and shared fixed references outstanding; the collector
-therefore emits progress only, without partial-grid performance curves.
+The received `log_snr_v4` and `linear_v3` QR-CVaR/seed-11 chains each completed
+500 training episodes and all 240 declared validation executions. Their
+[first-chain verification](../docs/colab_budget_chain_1_20261122.md) and
+[linear-chain/input-pairing verification](../docs/colab_budget_chain_2_20261122.md)
+preserve archive/source/session identities and confirm all 102 checkpoints.
+The 500 training inputs, fixed validation cohort and initial states match.
+Two chains are verified; ten declared chains and shared fixed references
+remain outstanding. Progress records are combined after separate archive
+checks, retaining null performance curves and comparisons for this incomplete
+grid.
