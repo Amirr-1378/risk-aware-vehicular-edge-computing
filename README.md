@@ -117,9 +117,12 @@ The implementation milestones are:
    numerical scale without consistent mean-cost gains; schema-3 defaults remain unchanged;
 20. **complete:** preparation of a fixed 12-chain, 20/100/500-episode development
    study with expanded trace capacity, resumable chunks, frozen validation and
-   complete-grid collection; the declared larger study has not been executed;
-21. **next:** execute the declared learning-budget study in Colab, empirical
-   calibration, frozen paper
+   complete-grid collection;
+21. **in progress:** the first Colab learning-budget chain completed 500 training
+   episodes and all three fixed evaluation points; its received export passed
+   [independent verification](docs/colab_budget_chain_1_20261122.md), with 11
+   declared chains and shared fixed references still outstanding;
+22. **next:** finish the declared learning-budget study, empirical calibration, frozen paper
    protocols, adapted paper/query-free MEC baselines, and final evaluation.
 
 Main training is planned for Google Colab. Notify Amir before starting that
@@ -167,7 +170,7 @@ checkpoint continuation: four training episodes, eight frozen validation cases,
 episode records passed independent verification; main training remains unstarted. See
 [`docs/colab_execution_20261121.md`](docs/colab_execution_20261121.md).
 
-The next development study has a separate opt-in
+The development learning-budget study has a separate opt-in
 [`Colab notebook`](notebooks/colab_learning_budget.ipynb) and fixed learning-budget
 plan. It advances one selected chain through 20, 100 and 500 training episodes,
 with the same validation cohort at each point. Twelve declared chains and shared
@@ -176,6 +179,9 @@ not completed results. Main training and held-out evaluation remain unstarted.
 See [`docs/learning_budget_development.md`](docs/learning_budget_development.md).
 The [local preparation verification](docs/learning_budget_preparation_20261121.md)
 records the fixed identities, small-fixture checks and passing test suites.
+The [first received Colab chain](docs/colab_budget_chain_1_20261122.md) completed
+500 training episodes and 240 validation executions. One of 12 declared chains
+is verified; complete-grid performance comparisons remain unavailable.
 
 The package uses a `src` layout and will target Python 3.11 or newer.
 
