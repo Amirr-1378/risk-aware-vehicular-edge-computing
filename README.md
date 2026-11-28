@@ -118,12 +118,13 @@ The implementation milestones are:
 20. **complete:** preparation of a fixed 12-chain, 20/100/500-episode development
    study with expanded trace capacity, resumable chunks, frozen validation and
    complete-grid collection;
-21. **in progress:** all four representation/QR-risk combinations for seed 11,
-   both QR-CVaR representations and linear neutral QR at seed 29 completed
-   500 training episodes and all three fixed evaluation points; archives,
+21. **in progress:** all four representation/QR-risk combinations for seeds
+   11 and 29 completed 500 training episodes and all three fixed evaluation
+   points; archives,
    checkpoints, input/seed controls and runtime identities passed
-   [verification](docs/colab_budget_chain_7_20261128.md). Seven of twelve chains
-   and 357 checkpoints are verified; five chains and shared references remain;
+   [verification](docs/colab_budget_chain_8_20261128.md). Eight of twelve chains
+   and 408 checkpoints are verified; four seed-47 chains and shared references
+   remain outstanding;
 22. **next:** finish the declared learning-budget study, empirical calibration, frozen paper
    protocols, adapted paper/query-free MEC baselines, and final evaluation.
 
@@ -205,10 +206,13 @@ its log-SNR counterpart. The
 [linear neutral QR/seed-29 control](docs/colab_budget_chain_7_20261128.md) also
 passed archive/history/all-51-checkpoint checks. Inputs and initial producer
 states match its linear CVaR counterpart, with algorithm as the sole nested
-configuration difference and effective risk weight zero. Seven of twelve
-chains and 357 checkpoints are verified. The log-SNR neutral QR/seed-29 chain,
-four seed-47 chains and shared references remain outstanding. Complete-grid
-performance comparisons remain unavailable.
+configuration difference and effective risk weight zero. The
+[log-SNR neutral QR/seed-29 control](docs/colab_budget_chain_8_20261128.md)
+also passed archive/history/all-51-checkpoint checks, completing the seed-29
+factor grid with matched inputs and initial producer states. Eight of twelve
+chains and 408 checkpoints are verified; four seed-47 chains and shared
+references remain outstanding. Complete-grid performance comparisons remain
+unavailable.
 
 The package uses a `src` layout and will target Python 3.11 or newer.
 

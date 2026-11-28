@@ -323,8 +323,19 @@ only algorithm differs in the nested configuration. Effective risk weight
 is zero for this QR control. The final verified
 checkpoint is `steps/000052/agent.pt`, with model fingerprint
 `0d610b07d24d89db44171c75c4a12ae9b0803164e937a7d68b37765df9ddddb4`.
-Seven of twelve chains and 357 checkpoints are verified. The log-SNR neutral
-QR/seed-29 chain, four seed-47 chains and shared fixed references remain
-outstanding; complete-grid performance comparisons remain withheld. Main
-training and held-out evaluation remain unstarted. No pinned protocol or
-scientific source was changed for this audit.
+
+The [eighth-chain audit](../docs/colab_budget_chain_8_20261128.md) verifies
+`log_snr_v4 / qr_dqn / seed 29`: 500 training episodes, the fixed 20/100/500
+budget points, 240 validation executions, 103623 training slots, 8930
+transitions and 8899 updates. Archive, recorded history and all 51 checkpoints
+passed checks. Its final verified checkpoint is `steps/000052/agent.pt`,
+with model fingerprint
+`fa10b23373c42c22a122d3be40ec15096ee14f3893d2b44b8de6c9f68228378e`.
+The four seed-29 factor combinations share exogenous inputs and initial
+producer network/optimizer/replay/RNG states; full contracts differ only by
+the declared representation/algorithm factors. Effective risk weight is
+zero for this QR control. Eight of twelve chains and 408 checkpoints are
+verified. Four seed-47 chains and shared fixed references remain outstanding;
+complete-grid performance comparisons remain withheld. Main training and
+held-out evaluation remain unstarted. No pinned protocol or scientific
+source was changed for this audit.
