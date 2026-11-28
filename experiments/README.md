@@ -383,9 +383,32 @@ The four seed-47 factor combinations share exogenous inputs and initial
 producer network/optimizer/replay/RNG states; contracts differ only by the
 declared representation/algorithm factors. Effective risk weight is zero
 for this QR control. All twelve chains and 612 checkpoints are verified,
-covering 6000 training episodes and 2880 validation executions. The merged
-progress status is `awaiting_references`; performance curves and comparisons
-remain withheld pending the 400 shared fixed-policy reference executions
-and full-study analysis. The study is not complete. Main training and
-held-out evaluation remain unstarted; no pinned protocol or scientific
-source changed.
+covering 6000 training episodes and 2880 validation executions. At that
+milestone the merged progress status was `awaiting_references`.
+
+The [shared-reference handoff](../docs/colab_budget_references_handoff_20261128.md)
+prepares one explicit Colab invocation of the unchanged five-policy reference
+runner. An external launcher verifies exact source/runtime/protocol identity,
+Drive readiness and the twelve chain-contract identities before creating a
+fresh `references` directory. Guard and saved-byte checks used a mocked
+evaluator only: zero real evaluation episodes or training updates ran.
+The first reported Colab invocation reached an erroneous post-save comparison:
+the launcher compared JSON lists with the in-memory tuple-bearing protocol.
+This was reproduced using the actual protocol and fixed with exact serializer
+byte comparison. A regression fixture checks real protocol tuples, the eleven
+pre-execution guards and rejection of altered saved bytes. No scientific
+source, greedy policy, objective or runtime identity changed. The already
+saved report was retrieved without repeating evaluation. No real episodes
+ran locally during the diagnosis, correction or received-report audit.
+
+The [fixed-reference verification](../docs/colab_budget_references_verification_20261128.md)
+passed all 400 records, 80 static manifests and cohort pairings with all
+twelve chains and 2880 learned validation executions. Recorded costs and
+task accounting reconcile; all 12745 offered reference task instances
+eventually completed. The received bytes also confirm the original
+tuple/list comparison diagnosis. All 9280 planned physical executions are
+verified, with 612 learning checkpoints. Current merged progress is
+`executions_verified_awaiting_analysis`; full-grid performance collection
+and interpretation remain pending, without checkpoint/seed selection or a
+greedy-improvement claim. Main training and held-out paper evaluation remain
+unstarted; source, physical models and protocols remain unchanged.

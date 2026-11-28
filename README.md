@@ -122,8 +122,10 @@ The implementation milestones are:
    500 training episodes and all three fixed evaluation points. Archives,
    checkpoints, input/seed controls and runtime identities passed
    [verification](docs/colab_budget_chain_12_20261128.md). All twelve chains
-   and 612 checkpoints are verified; shared fixed references and complete-study
-   analysis remain outstanding;
+   and 612 checkpoints are verified. The
+   [400 fixed-reference executions](docs/colab_budget_references_verification_20261128.md)
+   also passed checks, completing all 9280 planned physical executions;
+   complete-grid performance collection and analysis remain outstanding;
 22. **next:** finish the declared learning-budget study, empirical calibration, frozen paper
    protocols, adapted paper/query-free MEC baselines, and final evaluation.
 
@@ -234,9 +236,23 @@ The [twelfth-chain audit](docs/colab_budget_chain_12_20261128.md) verifies
 points, 240 validation executions and all 51 checkpoints. All four seed-47
 factor combinations share inputs and initial producer states, completing
 verification of all twelve chains and 612 checkpoints. The learning runs
-account for 6000 training episodes and 2880 validation executions. The 400
-shared fixed-policy reference executions and complete-study analysis remain
-outstanding; no greedy-improvement or final paper result is established.
+account for 6000 training episodes and 2880 validation executions.
+
+The [shared-reference Colab handoff](docs/colab_budget_references_handoff_20261128.md)
+is prepared and its launch guards were checked with a mocked evaluator.
+The existing five-policy runner and scientific source remain unchanged.
+The first user-reported reference invocation reached a saved-report comparison
+error after the evaluator returned. A tuple/list JSON-comparison bug in the
+external launcher was reproduced and corrected with a regression check;
+scientific source and saved evidence remain unchanged. The original saved
+report was retrieved without repeating evaluation. Its
+[received-report audit](docs/colab_budget_references_verification_20261128.md)
+verifies all 400 records, 80 static manifests, pairing with all twelve chains
+and complete task drain. The report confirms that serialization, rather than
+the physical run, caused the launcher rejection. All 9280 planned physical
+executions are verified. Complete-grid performance collection and
+interpretation are next; no greedy-improvement or final paper result is
+established, and main training remains unstarted.
 
 The package uses a `src` layout and will target Python 3.11 or newer.
 
