@@ -359,8 +359,20 @@ Inputs and initial producer network/optimizer/replay/RNG states exactly match
 the log-SNR CVaR/seed-47 chain; full contracts differ only in the three
 representation fields. Against the matched linear CVaR seed-11 and seed-29
 controls, only learner seed differs in the contract and inputs are shared.
-Ten of twelve chains and 510 checkpoints are verified. Both neutral QR
-controls at seed 47 and shared fixed references remain outstanding.
+
+The [eleventh-chain audit](../docs/colab_budget_chain_11_20261128.md) verifies
+`linear_v3 / qr_dqn / seed 47`: 500 training episodes, the fixed 20/100/500
+budget points, 240 validation executions, 104170 training slots, 8930
+transitions and 8899 updates. Archive, recorded history and all 51 checkpoints
+passed checks. Its final verified checkpoint is `steps/000052/agent.pt`,
+with model fingerprint
+`db76dc634faabea59887d79422a6663946d606c8c84236773b0a38797025c9d6`.
+Inputs and initial producer states match the linear CVaR/seed-47 counterpart;
+only algorithm differs in the nested configuration, with effective risk
+weight zero for this QR control. Against the matched neutral seed-11 and
+seed-29 contracts, only learner seed differs and inputs are shared. Eleven
+of twelve chains and 561 checkpoints are verified. The log-SNR neutral
+QR/seed-47 chain and shared fixed references remain outstanding.
 Complete-grid performance comparisons remain withheld. Main training and
 held-out evaluation remain unstarted; no pinned protocol or scientific
 source changed.
