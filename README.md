@@ -119,12 +119,12 @@ The implementation milestones are:
    study with expanded trace capacity, resumable chunks, frozen validation and
    complete-grid collection;
 21. **in progress:** all four representation/QR-risk combinations for seeds
-   11 and 29, plus log-SNR QR-CVaR at seed 47, completed 500 training episodes
-   and all three fixed evaluation points. Archives, checkpoints, input/seed
+   11 and 29, plus both QR-CVaR representations at seed 47, completed 500
+   training episodes and all three fixed evaluation points. Archives, checkpoints, input/seed
    controls and runtime identities passed
-   [verification](docs/colab_budget_chain_9_20261128.md). Nine of twelve chains
-   and 459 checkpoints are verified; three seed-47 controls and shared
-   references remain outstanding;
+   [verification](docs/colab_budget_chain_10_20261128.md). Ten of twelve chains
+   and 510 checkpoints are verified; both neutral QR controls at seed 47 and
+   shared references remain outstanding;
 22. **next:** finish the declared learning-budget study, empirical calibration, frozen paper
    protocols, adapted paper/query-free MEC baselines, and final evaluation.
 
@@ -216,10 +216,16 @@ The [ninth-chain audit](docs/colab_budget_chain_9_20261128.md) verifies
 `log_snr_v4 / qr_dqn_cvar / seed 47`: 500 training episodes, all three fixed
 budget points, 240 validation executions and all 51 checkpoints. Exogenous
 inputs match the seed-11 and seed-29 CVaR controls, while initial weights and
-replay RNG differ; only learner seed differs in the full contracts. Nine of
-twelve chains and 459 checkpoints are verified. The linear CVaR and both
-neutral QR controls at seed 47, plus shared references, remain outstanding.
-Complete-grid performance comparisons remain unavailable.
+replay RNG differ; only learner seed differs in the full contracts.
+
+The [tenth-chain audit](docs/colab_budget_chain_10_20261128.md) verifies
+`linear_v3 / qr_dqn_cvar / seed 47`: 500 training episodes, all three fixed
+budget points, 240 validation executions and all 51 checkpoints. Inputs and
+initial producer states exactly match its log-SNR counterpart; full contracts
+differ only in the declared representation fields. Ten of twelve chains and
+510 checkpoints are verified. Both neutral QR controls at seed 47 and shared
+fixed references remain outstanding. Complete-grid performance comparisons
+remain unavailable.
 
 The package uses a `src` layout and will target Python 3.11 or newer.
 
