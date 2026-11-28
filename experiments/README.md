@@ -312,7 +312,19 @@ no training rerun or partial-grid performance comparison was performed.
 The [linear QR-CVaR/seed-29 audit](../docs/colab_budget_chain_6_20261122.md)
 also passed all archive/history/51-checkpoint checks. Initial producer states
 and inputs exactly match the log-SNR counterpart, without a Windows-reference
-initialization comparison. Six chains and 306 checkpoints are verified;
-the two neutral QR/seed-29 controls, four seed-47 chains and shared fixed
-references remain outstanding. Complete-grid performance comparisons remain
-withheld.
+initialization comparison.
+
+The [seventh-chain audit](../docs/colab_budget_chain_7_20261128.md) verifies
+`linear_v3 / qr_dqn / seed 29`: 500 training episodes, all three budget points,
+240 validation executions, 104206 training slots, 8930 transitions and 8899
+updates. Its archive, recorded history and all 51 checkpoints passed checks.
+Inputs and initial producer states match the linear CVaR/seed-29 chain;
+only algorithm differs in the nested configuration. Effective risk weight
+is zero for this QR control. The final verified
+checkpoint is `steps/000052/agent.pt`, with model fingerprint
+`0d610b07d24d89db44171c75c4a12ae9b0803164e937a7d68b37765df9ddddb4`.
+Seven of twelve chains and 357 checkpoints are verified. The log-SNR neutral
+QR/seed-29 chain, four seed-47 chains and shared fixed references remain
+outstanding; complete-grid performance comparisons remain withheld. Main
+training and held-out evaluation remain unstarted. No pinned protocol or
+scientific source was changed for this audit.
