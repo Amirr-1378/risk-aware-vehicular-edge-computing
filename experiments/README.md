@@ -334,8 +334,20 @@ with model fingerprint
 The four seed-29 factor combinations share exogenous inputs and initial
 producer network/optimizer/replay/RNG states; full contracts differ only by
 the declared representation/algorithm factors. Effective risk weight is
-zero for this QR control. Eight of twelve chains and 408 checkpoints are
-verified. Four seed-47 chains and shared fixed references remain outstanding;
-complete-grid performance comparisons remain withheld. Main training and
-held-out evaluation remain unstarted. No pinned protocol or scientific
-source was changed for this audit.
+zero for this QR control. This completed verification of all four factor
+combinations at seeds 11 and 29.
+
+The [ninth-chain audit](../docs/colab_budget_chain_9_20261128.md) verifies
+`log_snr_v4 / qr_dqn_cvar / seed 47`: 500 training episodes, the fixed
+20/100/500 budget points, 240 validation executions, 103341 training slots,
+8930 transitions and 8899 updates. Archive, recorded history and all 51
+checkpoints passed checks. Its final verified checkpoint is
+`steps/000052/agent.pt`, with model fingerprint
+`e2badfc2fc26d75a1180bd8b8ec13d36acc473c35c8b3dc1c3fa72d8febdfdc6`.
+Full contracts differ from the matched seed-11 and seed-29 CVaR controls only
+by learner seed. Exogenous inputs match; initial weights and replay RNG
+differ. Effective risk weight remains .5. Nine of twelve chains and 459
+checkpoints are verified. The linear CVaR and both neutral QR controls at
+seed 47, plus shared fixed references, remain outstanding. Complete-grid
+performance comparisons remain withheld. Main training and held-out
+evaluation remain unstarted; no pinned protocol or scientific source changed.
