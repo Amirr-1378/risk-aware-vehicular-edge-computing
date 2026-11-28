@@ -118,14 +118,12 @@ The implementation milestones are:
 20. **complete:** preparation of a fixed 12-chain, 20/100/500-episode development
    study with expanded trace capacity, resumable chunks, frozen validation and
    complete-grid collection;
-21. **in progress:** all four representation/QR-risk combinations for seeds
-   11 and 29, plus both QR-CVaR representations and linear neutral QR at seed
-   47, completed 500 training episodes and all three fixed evaluation points.
-   Archives, checkpoints, input/seed
-   controls and runtime identities passed
-   [verification](docs/colab_budget_chain_11_20261128.md). Eleven of twelve
-   chains and 561 checkpoints are verified; the log-SNR neutral QR/seed-47
-   chain and shared references remain outstanding;
+21. **in progress:** all twelve representation/QR-risk/seed chains completed
+   500 training episodes and all three fixed evaluation points. Archives,
+   checkpoints, input/seed controls and runtime identities passed
+   [verification](docs/colab_budget_chain_12_20261128.md). All twelve chains
+   and 612 checkpoints are verified; shared fixed references and complete-study
+   analysis remain outstanding;
 22. **next:** finish the declared learning-budget study, empirical calibration, frozen paper
    protocols, adapted paper/query-free MEC baselines, and final evaluation.
 
@@ -229,10 +227,16 @@ The [eleventh-chain audit](docs/colab_budget_chain_11_20261128.md) verifies
 `linear_v3 / qr_dqn / seed 47`: 500 training episodes, all three fixed budget
 points, 240 validation executions and all 51 checkpoints. Inputs and initial
 producer states match its linear CVaR counterpart, with algorithm as the sole
-nested configuration difference and effective risk weight zero. Eleven of
-twelve chains and 561 checkpoints are verified. The log-SNR neutral QR/seed-47
-chain and shared fixed references remain outstanding. Complete-grid
-performance comparisons remain unavailable.
+nested configuration difference and effective risk weight zero.
+
+The [twelfth-chain audit](docs/colab_budget_chain_12_20261128.md) verifies
+`log_snr_v4 / qr_dqn / seed 47`: 500 training episodes, all three fixed budget
+points, 240 validation executions and all 51 checkpoints. All four seed-47
+factor combinations share inputs and initial producer states, completing
+verification of all twelve chains and 612 checkpoints. The learning runs
+account for 6000 training episodes and 2880 validation executions. The 400
+shared fixed-policy reference executions and complete-study analysis remain
+outstanding; no greedy-improvement or final paper result is established.
 
 The package uses a `src` layout and will target Python 3.11 or newer.
 

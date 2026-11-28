@@ -370,9 +370,22 @@ with model fingerprint
 Inputs and initial producer states match the linear CVaR/seed-47 counterpart;
 only algorithm differs in the nested configuration, with effective risk
 weight zero for this QR control. Against the matched neutral seed-11 and
-seed-29 contracts, only learner seed differs and inputs are shared. Eleven
-of twelve chains and 561 checkpoints are verified. The log-SNR neutral
-QR/seed-47 chain and shared fixed references remain outstanding.
-Complete-grid performance comparisons remain withheld. Main training and
+seed-29 contracts, only learner seed differs and inputs are shared.
+
+The [twelfth-chain audit](../docs/colab_budget_chain_12_20261128.md) verifies
+`log_snr_v4 / qr_dqn / seed 47`: 500 training episodes, the fixed 20/100/500
+budget points, 240 validation executions, 103497 training slots, 8930
+transitions and 8899 updates. Archive, recorded history and all 51 checkpoints
+passed checks. Its final verified checkpoint is `steps/000052/agent.pt`,
+with model fingerprint
+`e232f2c32b120883e79c65bf0c484b72189e5795a4ed8c7c891ba1974e990c9d`.
+The four seed-47 factor combinations share exogenous inputs and initial
+producer network/optimizer/replay/RNG states; contracts differ only by the
+declared representation/algorithm factors. Effective risk weight is zero
+for this QR control. All twelve chains and 612 checkpoints are verified,
+covering 6000 training episodes and 2880 validation executions. The merged
+progress status is `awaiting_references`; performance curves and comparisons
+remain withheld pending the 400 shared fixed-policy reference executions
+and full-study analysis. The study is not complete. Main training and
 held-out evaluation remain unstarted; no pinned protocol or scientific
 source changed.
