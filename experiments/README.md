@@ -407,8 +407,29 @@ twelve chains and 2880 learned validation executions. Recorded costs and
 task accounting reconcile; all 12745 offered reference task instances
 eventually completed. The received bytes also confirm the original
 tuple/list comparison diagnosis. All 9280 planned physical executions are
-verified, with 612 learning checkpoints. Current merged progress is
-`executions_verified_awaiting_analysis`; full-grid performance collection
-and interpretation remain pending, without checkpoint/seed selection or a
-greedy-improvement claim. Main training and held-out paper evaluation remain
-unstarted; source, physical models and protocols remain unchanged.
+verified, with 612 learning checkpoints. At that milestone the merged
+progress was `executions_verified_awaiting_analysis`.
+
+The [complete-grid analysis](../docs/learning_budget_results_20261128.md)
+now records the unchanged collector's `complete` status, all 144 learned
+model/budget/profile rows, all 20 fixed-policy/profile rows, and representation
+comparisons at 20/100/500. The [full tables](../docs/learning_budget_results_tables_20261128.md)
+retain every seed and budget. Raw-record checks independently verify means,
+upper-two CVaRs, task-weighted metrics and paired greedy cost differences.
+There are zero mean-cost and zero CVaR wins over combined-cost greedy in all
+144 learned rows, including all 48 final-budget rows. Across-seed averages
+keep individual model CVaRs separate; no policy/seed tail pooling or
+significance claim is made.
+
+At 500 episodes, linear QR-CVaR mean cost is 18.55–26.35% above greedy across
+profiles, and log-SNR QR-CVaR is 6.30–13.76% above. Corresponding mean-of-model
+CVaR gaps are 19.60–30.64% and 10.71–15.51%. These are profile ranges of three
+seed averages, not confidence intervals. Log-SNR improves the QR-CVaR
+representation comparison in those averages, but is not adopted as a new
+default. QR-CVaR-versus-neutral-QR effects vary by profile and seed. Lower
+mobile energy and some latency gains coexist with higher cost and lower SV
+workload than greedy. No new physical evaluation, model training, checkpoint
+loading or held-out access occurred during collection or analysis. Scientific
+source, weights, budgets, greedy and method remain unchanged. The next step
+is a predeclared training-only checkpoint diagnosis; main training and paper
+evaluation await calibration and a frozen paper protocol.

@@ -118,16 +118,19 @@ The implementation milestones are:
 20. **complete:** preparation of a fixed 12-chain, 20/100/500-episode development
    study with expanded trace capacity, resumable chunks, frozen validation and
    complete-grid collection;
-21. **in progress:** all twelve representation/QR-risk/seed chains completed
+21. **complete:** all twelve representation/QR-risk/seed chains completed
    500 training episodes and all three fixed evaluation points. Archives,
    checkpoints, input/seed controls and runtime identities passed
    [verification](docs/colab_budget_chain_12_20261128.md). All twelve chains
    and 612 checkpoints are verified. The
    [400 fixed-reference executions](docs/colab_budget_references_verification_20261128.md)
    also passed checks, completing all 9280 planned physical executions;
-   complete-grid performance collection and analysis remain outstanding;
-22. **next:** finish the declared learning-budget study, empirical calibration, frozen paper
-   protocols, adapted paper/query-free MEC baselines, and final evaluation.
+   [complete-grid analysis](docs/learning_budget_results_20261128.md) retains
+   every model, budget and profile and finds no mean-cost or CVaR gain over
+   cached combined-cost greedy;
+22. **next:** predeclared training-only checkpoint diagnostics, empirical
+   calibration, frozen paper protocols, adapted paper/query-free MEC baselines,
+   and final evaluation. Main training has not started.
 
 Main training is planned for Google Colab. Notify Amir before starting that
 milestone; local training runs are bounded development checks.
@@ -250,9 +253,22 @@ report was retrieved without repeating evaluation. Its
 verifies all 400 records, 80 static manifests, pairing with all twelve chains
 and complete task drain. The report confirms that serialization, rather than
 the physical run, caused the launcher rejection. All 9280 planned physical
-executions are verified. Complete-grid performance collection and
-interpretation are next; no greedy-improvement or final paper result is
-established, and main training remains unstarted.
+executions are verified.
+
+The [complete study analysis](docs/learning_budget_results_20261128.md) and
+[all-row tables](docs/learning_budget_results_tables_20261128.md) now retain
+all 144 learned model/budget/profile rows and 20 fixed-policy/profile rows.
+The unchanged collector returned `complete`. No learned row at any declared
+budget has lower mean episode cost or CVaR .9 than matched combined-cost
+greedy. At budget 500, log-SNR QR-CVaR has mean cost 6.30–13.76% higher than
+greedy across profiles; the linear counterpart is 18.55–26.35% higher.
+These ranges describe three-seed profile averages, not confidence intervals.
+Mean model CVaR also remains higher, and the CVaR-versus-neutral-QR effect is
+profile-dependent. Both QR-CVaR representations use a smaller mean SV-workload
+fraction than greedy. The study remains synthetic development evidence;
+representation defaults, objective and method are unchanged. The next step
+is a declared training-only diagnosis before any new training plan. Main
+training and held-out paper evaluation remain unstarted.
 
 The package uses a `src` layout and will target Python 3.11 or newer.
 
